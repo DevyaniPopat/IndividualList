@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Individual Filing Tracker — Gandhi Arun & Co</title>
+
+<!-- ════════════════════════════════════════════
+     PASTE YOUR FIREBASE CONFIG BELOW
+     ════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, doc, addDoc, setDoc, updateDoc,
+    deleteDoc, onSnapshot, query, where, getDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── PASTE YOUR CONFIG HERE ─────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCFE9PiFE8HVRLCXoy9z_G6v-KwbSZkDxc",
+  authDomain: "ca-worktrack.firebaseapp.com",
+  projectId: "ca-worktrack",
+  storageBucket: "ca-worktrack.firebasestorage.app",
+  messagingSenderId: "882504279666",
+  appId: "1:882504279666:web:9e6565aacc86c3bcbf44eb",
+  measurementId: "G-6325R0T37C"
+  };
+  // ───────────────────────────────────────────────
+
+  const app = initializeApp(firebaseConfig);
+  window._auth = getAuth(app);
+  window._db   = getFirestore(app);
+  window._fns  = { signInWithEmailAndPassword, signOut, onAuthStateChanged,
+    collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDoc };
+  document.addEventListener('DOMContentLoaded', () => window.appBoot());
+</script>
+
+<!-- Chart.js for pie charts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════
+   COLOUR PALETTE — BLUE & WHITE THEME
+   ═══════════════════════════════════════ */
+:root{
+  --bg:#f0f4f9;
+  --bg2:#e3eaf4;
+  --surface:#ffffff;
+  --border:#cdd8e8;
+  --border2:#b0c2d8;
+  --ink:#111827;
+  --ink2:#374151;
+  --ink3:#6b7280;
+
+  /* PRIMARY BLUE PALETTE */
+  --primary:#1a56a0;
+  --primary-dk:#0f3a72;
+  --primary-lt:#dbeafe;
+  --primary-mid:#2563eb;
+
+  /* STATUS COLOURS */
+  --red:#b91c1c;--red-lt:#fee2e2;
+  --orange:#c2410c;--orange-lt:#ffedd5;
+  --green:#15803d;--green-lt:#dcfce7;
+  --blue:#1a56a0;--blue-lt:#dbeafe;
+  --teal:#0f766e;--teal-lt:#ccfbf1;
+  --purple:#6d28d9;--purple-lt:#ede9fe;
+  --gold:#b45309;--gold-lt:#fef3c7;
+
+  --shadow:0 2px 18px rgba(26,86,160,.08);
+  --shadow-lg:0 8px 40px rgba(26,86,160,.18);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;line-height:1.5;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* ── LOAD SCREEN ── */
+#loadScreen{position:fixed;inset:0;background:var(--primary-dk);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;}
+.load-mark{width:60px;height:60px;border-radius:14px;background:#fff;font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--primary);display:flex;align-items:center;justify-content:center;margin-bottom:20px;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
+.load-txt{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:#fff;}
+.load-sub{font-size:12px;color:rgba(255,255,255,.45);margin-top:6px;letter-spacing:1.5px;text-transform:uppercase;}
+
+/* ── LOGIN ── */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--primary-dk);position:relative;overflow:hidden;}
+#loginScreen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 20% 80%,rgba(37,99,235,.25) 0%,transparent 60%);}
+.login-card{background:var(--surface);border-radius:20px;padding:44px 44px 36px;width:420px;max-width:95vw;box-shadow:0 24px 80px rgba(0,0,0,.45);position:relative;z-index:1;animation:cardIn .4s cubic-bezier(.2,.8,.3,1) both;}
+@keyframes cardIn{from{opacity:0;transform:translateY(20px) scale(.97);}to{opacity:1;transform:none;}}
+.login-logo{display:flex;align-items:center;gap:14px;margin-bottom:32px;}
+.login-mark{width:48px;height:48px;background:var(--primary);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:#fff;}
+.login-brand-name{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--primary);}
+.login-brand-sub{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:2px;}
+.login-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.login-sub{font-size:12px;color:var(--ink3);margin-bottom:28px;}
+.login-err{background:var(--red-lt);border:1px solid #fca5a5;border-radius:8px;padding:9px 14px;font-size:12px;color:var(--red);margin-bottom:14px;display:none;}
+.f-grp{display:flex;flex-direction:column;gap:5px;}
+.f-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink2);}
+.f-inp{background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:11px 14px;font-family:'Outfit',sans-serif;font-size:13px;color:var(--ink);outline:none;transition:border-color .2s;width:100%;}
+.f-inp:focus{border-color:var(--primary);}
+.btn-login{width:100%;background:var(--primary);color:#fff;border:none;border-radius:10px;padding:12px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:4px;display:flex;align-items:center;justify-content:center;}
+.btn-login:hover{background:var(--primary-dk);}
+.btn-login:disabled{opacity:.6;cursor:not-allowed;}
+.login-footer{margin-top:22px;padding-top:18px;border-top:1px solid var(--border);font-size:11px;color:var(--ink3);text-align:center;}
+
+/* ── APP SHELL ── */
+#appShell{display:none;flex-direction:column;min-height:100vh;}
+
+/* ── HEADER ── */
+.hdr{background:var(--primary-dk);padding:0 22px;display:flex;align-items:stretch;justify-content:space-between;height:54px;position:sticky;top:0;z-index:200;box-shadow:0 2px 20px rgba(0,0,0,.3);}
+.hdr-left{display:flex;align-items:center;gap:0;}
+.hdr-logo{display:flex;align-items:center;gap:10px;margin-right:16px;}
+.hdr-mark{width:30px;height:30px;background:#fff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:700;color:var(--primary);}
+.hdr-name{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700;color:#fff;}
+.hdr-sub{font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:1.5px;}
+.nav-tab{display:flex;align-items:center;gap:5px;padding:0 12px;height:100%;font-size:11px;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;border:none;background:none;border-bottom:3px solid transparent;transition:all .2s;font-family:'Outfit',sans-serif;white-space:nowrap;}
+.nav-tab:hover{color:rgba(255,255,255,.9);}
+.nav-tab.active{color:#fff;border-bottom-color:#60a5fa;}
+.hdr-right{display:flex;align-items:center;gap:7px;}
+.user-chip{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:4px 10px 4px 5px;}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:#60a5fa;font-family:'Cormorant Garamond',serif;font-size:12px;font-weight:700;color:var(--primary-dk);display:flex;align-items:center;justify-content:center;}
+.user-name{font-size:11px;color:rgba(255,255,255,.85);font-weight:500;}
+.user-role{font-size:9px;color:#93c5fd;text-transform:uppercase;letter-spacing:1px;background:rgba(96,165,250,.2);border-radius:4px;padding:1px 5px;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .2s;white-space:nowrap;}
+.btn-primary{background:var(--primary);color:#fff;}.btn-primary:hover{background:var(--primary-dk);transform:translateY(-1px);}
+.btn-ghost{background:rgba(255,255,255,.1);color:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.18);}.btn-ghost:hover{background:rgba(255,255,255,.2);color:#fff;}
+.btn-outline{background:var(--surface);color:var(--primary);border:1.5px solid var(--border2);}.btn-outline:hover{background:var(--primary);color:#fff;}
+
+/* ── LAYOUT ── */
+.main{padding:18px 22px;flex:1;max-width:1600px;width:100%;margin:0 auto;}
+.vp{display:none;}.vp.active{display:block;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+/* ── STAT CARDS ── */
+.stats-row{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:16px;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 15px;position:relative;overflow:hidden;transition:transform .2s;}
+.sc:hover{transform:translateY(-2px);}
+.sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;}
+.sc-all::after{background:var(--primary);}
+.sc-ns::after{background:var(--orange);}
+.sc-wip::after{background:#3b82f6;}
+.sc-ur::after{background:var(--purple);}
+.sc-done::after{background:var(--green);}
+.sc-bsp::after{background:var(--red);}
+.sc-bsd::after{background:var(--teal);}
+.sc-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink3);margin-bottom:5px;}
+.sc-num{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;line-height:1;}
+.sc-all .sc-num{color:var(--primary);}
+.sc-ns .sc-num{color:var(--orange);}
+.sc-wip .sc-num{color:#3b82f6;}
+.sc-ur .sc-num{color:var(--purple);}
+.sc-done .sc-num{color:var(--green);}
+.sc-bsp .sc-num{color:var(--red);}
+.sc-bsd .sc-num{color:var(--teal);}
+.sc-sub{font-size:10px;color:var(--ink3);margin-top:3px;}
+
+/* ── DASHBOARD PANELS ── */
+.two-col{display:grid;grid-template-columns:1fr 270px;gap:13px;margin-bottom:16px;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.panel-hd{padding:11px 15px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between;}
+.panel-title{font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;}
+.cat-row{padding:9px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;transition:background .15s;}
+.cat-row:last-child{border-bottom:none;}.cat-row:hover{background:var(--bg);}
+.cat-nm{flex:1;font-size:12px;font-weight:500;color:var(--ink);}
+.cat-cnt{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:700;min-width:16px;text-align:right;}
+.cat-bw{width:45px;height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;}
+.cat-bf{height:100%;border-radius:2px;transition:width .5s;}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:7px;margin-bottom:11px;flex-wrap:wrap;}
+.srch-w{position:relative;flex:1;min-width:150px;}
+.srch-ic{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink3);pointer-events:none;}
+.srch-inp{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px 7px 28px;font-family:'Outfit',sans-serif;font-size:12px;color:var(--ink);outline:none;transition:border-color .2s;}
+.srch-inp:focus{border-color:var(--primary);}
+.srch-inp::placeholder{color:var(--ink3);}
+.fsel{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'Outfit',sans-serif;font-size:12px;color:var(--ink);outline:none;cursor:pointer;}
+
+/* ── TABLE ── */
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--primary-dk);}
+th{padding:9px 11px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,.75);cursor:pointer;user-select:none;white-space:nowrap;transition:color .2s;}
+th:hover{color:#fff;}
+th.sa::after{content:' ▲';font-size:8px;}th.sd::after{content:' ▼';font-size:8px;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .13s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#eff6ff;}
+td{padding:10px 11px;vertical-align:middle;}
+.cl-n{font-weight:600;font-size:13px;color:var(--ink);}
+.cl-m{font-size:10px;color:var(--ink3);margin-top:2px;}
+
+/* ── BADGES ── */
+.grp-badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600;background:var(--primary-lt);color:var(--primary);border:1px solid #93c5fd;white-space:nowrap;}
+.group-section{margin-bottom:20px;}
+.group-section-hd{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:700;color:var(--primary-dk);padding:9px 0 7px;border-bottom:2px solid var(--primary);margin-bottom:0;display:flex;align-items:center;gap:9px;}
+.cnt-badge{font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;background:var(--primary);color:#fff;border-radius:20px;padding:2px 8px;}
+
+/* ── STATUS BADGES ── */
+.ss{padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;border:1.5px solid transparent;white-space:nowrap;display:inline-block;}
+.ss-ns{background:var(--orange-lt);color:var(--orange);border-color:#fed7aa;}
+.ss-wip{background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;}
+.ss-ur{background:var(--purple-lt);color:var(--purple);border-color:#c4b5fd;}
+.ss-done{background:var(--green-lt);color:var(--green);border-color:#86efac;}
+
+/* ── BALANCE SHEET BADGES ── */
+.bs{padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;border:1.5px solid transparent;white-space:nowrap;display:inline-block;}
+.bs-na{background:var(--bg2);color:var(--ink3);border-color:var(--border2);}
+.bs-pending{background:var(--red-lt);color:var(--red);border-color:#fca5a5;}
+.bs-done{background:var(--teal-lt);color:var(--teal);border-color:#5eead4;}
+
+/* ── E-VERIFICATION BADGES ── */
+.ev{padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;border:1.5px solid transparent;white-space:nowrap;display:inline-block;}
+.ev-pending{background:#fef3c7;color:#92400e;border-color:#fcd34d;}
+.ev-done{background:var(--green-lt);color:var(--green);border-color:#86efac;}
+
+/* ── BILLING BADGE ── */
+.bill{padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;border:1.5px solid transparent;white-space:nowrap;display:inline-block;}
+.bill-no{background:var(--bg2);color:var(--ink3);border-color:var(--border2);}
+.bill-yes{background:var(--primary-lt);color:var(--primary);border-color:#93c5fd;}
+
+.dof-ok{font-size:12px;color:var(--green);font-weight:600;}
+.dof-blank{font-size:12px;color:var(--ink3);}
+
+/* ── ACTION BUTTONS ── */
+.act{display:flex;gap:4px;}
+.ib{width:24px;height:24px;border-radius:5px;border:1px solid var(--border);background:var(--bg);color:var(--ink3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .2s;}
+.ib:hover{color:var(--primary);border-color:var(--primary);background:#fff;}
+.ib.del:hover{color:var(--red);border-color:var(--red);}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(3px);}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;width:660px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:mIn .22s ease;}
+@keyframes mIn{from{opacity:0;transform:scale(.96) translateY(8px);}to{opacity:1;transform:none;}}
+.m-hd{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--primary-dk);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.m-cl{width:26px;height:26px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--ink3);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.m-cl:hover{color:var(--red);border-color:var(--red);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.f-full{grid-column:span 2;}
+.f-grp-m{display:flex;flex-direction:column;gap:4px;}
+.f-lbl-m{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--ink2);}
+.f-inp-m,.f-sel-m,.f-txt-m{background:var(--bg);border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-family:'Outfit',sans-serif;font-size:13px;color:var(--ink);outline:none;transition:border-color .2s;width:100%;}
+.f-inp-m:focus,.f-sel-m:focus,.f-txt-m:focus{border-color:var(--primary);}
+.f-txt-m{resize:vertical;min-height:65px;}
+.m-ft{display:flex;gap:7px;justify-content:flex-end;margin-top:18px;padding-top:13px;border-top:1px solid var(--border);}
+.btn-sv{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-sv:hover{background:var(--primary-dk);}
+.btn-cn{background:var(--bg);color:var(--ink2);border:1.5px solid var(--border);border-radius:8px;padding:9px 15px;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;}
+
+/* ── BILLING SECTION IN MODAL ── */
+.bill-row{display:none;animation:fadeIn .2s ease;}
+.bill-row.visible{display:grid;}
+
+/* ── ADMIN ── */
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.usr-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.usr-card-hd{padding:11px 15px;background:var(--bg2);border-bottom:1px solid var(--border);font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:7px;}
+.usr-card-bd{padding:15px;}
+.st-tbl{width:100%;border-collapse:collapse;}
+.st-tbl th{padding:8px 11px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--ink3);border-bottom:1px solid var(--border);}
+.st-tbl td{padding:9px 11px;border-bottom:1px solid var(--border);font-size:12px;}
+.st-tbl tr:last-child td{border-bottom:none;}
+.role-b{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;}
+.rb-admin{background:var(--gold-lt);color:var(--gold);border:1px solid #fcd34d;}
+.rb-staff{background:var(--blue-lt);color:var(--blue);border:1px solid #93c5fd;}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:var(--bg2);border:1px solid var(--border);color:var(--ink);}
+.chip-del{cursor:pointer;color:var(--red);font-size:12px;background:none;border:none;padding:0;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;z-index:500;display:none;box-shadow:var(--shadow);animation:tIn .3s ease;}
+@keyframes tIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.t-ok{background:var(--green-lt);color:var(--green);border:1.5px solid #86efac;}
+.t-er{background:var(--red-lt);color:var(--red);border:1.5px solid #fca5a5;}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:44px 20px;color:var(--ink3);}
+.empty-ic{font-size:38px;margin-bottom:10px;opacity:.3;}
+.empty-tx{font-size:13px;}
+
+/* ── COMPLETED TAB ── */
+.completed-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.comp-stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 15px;text-align:center;}
+.comp-stat-num{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--primary);}
+.comp-stat-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--ink3);margin-top:3px;}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.chart-title{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:700;color:var(--primary-dk);margin-bottom:14px;text-align:center;}
+.chart-wrap{position:relative;height:220px;display:flex;justify-content:center;}
+
+/* ── IMPORT SECTION ── */
+.import-area{border:2px dashed var(--border2);border-radius:10px;padding:24px;text-align:center;transition:all .2s;cursor:pointer;background:var(--bg);}
+.import-area:hover{border-color:var(--primary);background:var(--primary-lt);}
+.import-area.drag-over{border-color:var(--primary);background:var(--primary-lt);}
+
+@media(max-width:900px){
+  .stats-row{grid-template-columns:repeat(4,1fr);}
+  .two-col{grid-template-columns:1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .f-full{grid-column:span 1;}
+  .admin-grid{grid-template-columns:1fr;}
+  .charts-row{grid-template-columns:1fr;}
+  .completed-summary{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<div id="loadScreen">
+  <div class="load-mark">CA</div>
+  <div class="load-txt">Individual Filing Tracker</div>
+  <div class="load-sub">Gandhi Arun &amp; Co · Chartered Accountants</div>
+</div>
+
+<div id="loginScreen" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-mark">CA</div>
+      <div>
+        <div class="login-brand-name">Individual Filing</div>
+        <div class="login-brand-sub">Gandhi Arun &amp; Co</div>
+      </div>
+    </div>
+    <div class="login-title">Sign in to your account</div>
+    <div class="login-sub">Secure access for Gandhi Arun &amp; Co team</div>
+    <div class="login-err" id="loginErr"></div>
+    <div class="f-grp" style="margin-bottom:14px;">
+      <label class="f-lbl">Email Address</label>
+      <input class="f-inp" id="loginEmail" type="email" placeholder="yourname@firm.com" autocomplete="email">
+    </div>
+    <div class="f-grp" style="margin-bottom:14px;">
+      <label class="f-lbl">Password</label>
+      <input class="f-inp" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
+    <div class="login-footer">🔒 Secured by Firebase Authentication · Google Cloud</div>
+  </div>
+</div>
+
+<div id="appShell">
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-logo">
+        <div class="hdr-mark">CA</div>
+        <div><div class="hdr-name">Individual Filing</div><div class="hdr-sub">Gandhi Arun &amp; Co</div></div>
+      </div>
+      <button class="nav-tab active" id="nt-dashboard" onclick="switchView('dashboard',this)">⊞ Dashboard</button>
+      <button class="nav-tab" id="nt-all"        onclick="switchView('all',this)">≡ All Filings</button>
+      <button class="nav-tab" id="nt-completed"  onclick="switchView('completed',this)">✓ Completed</button>
+      <button class="nav-tab" id="nt-groupwise"  onclick="switchView('groupwise',this)">🗂 Group-wise</button>
+      <button class="nav-tab" id="nt-staffwise"  onclick="switchView('staffwise',this)">👤 Staff-wise</button>
+      <button class="nav-tab" id="nt-admin"      onclick="switchView('admin',this)" style="display:none;">⚙ Admin</button>
+    </div>
+    <div class="hdr-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div><div class="user-name" id="userName">—</div><div class="user-role" id="userRole">—</div></div>
+      </div>
+      <button class="btn btn-ghost" onclick="doExport()">↓ CSV</button>
+      <button class="btn btn-primary" onclick="openModal()">+ Add Filing</button>
+      <button class="btn btn-ghost" onclick="doLogout()" title="Sign Out">⎋</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="vp active" id="vw-dashboard">
+      <div class="stats-row">
+        <div class="sc sc-all"><div class="sc-lbl">Total</div><div class="sc-num" id="st-all">0</div><div class="sc-sub">All filings</div></div>
+        <div class="sc sc-ns" ><div class="sc-lbl">Not Received</div><div class="sc-num" id="st-ns">0</div><div class="sc-sub">Data awaited</div></div>
+        <div class="sc sc-wip"><div class="sc-lbl">WIP</div><div class="sc-num" id="st-wip">0</div><div class="sc-sub">In progress</div></div>
+        <div class="sc sc-ur"><div class="sc-lbl">Under Review</div><div class="sc-num" id="st-ur">0</div><div class="sc-sub">Being reviewed</div></div>
+        <div class="sc sc-done"><div class="sc-lbl">Completed</div><div class="sc-num" id="st-done">0</div><div class="sc-sub">Filed &amp; closed</div></div>
+        <div class="sc sc-bsp"><div class="sc-lbl">BS Pending</div><div class="sc-num" id="st-bsp">0</div><div class="sc-sub">Balance sheet</div></div>
+        <div class="sc sc-bsd"><div class="sc-lbl">BS Done</div><div class="sc-num" id="st-bsd">0</div><div class="sc-sub">Balance sheet</div></div>
+        <div class="sc" style="background:var(--gold-lt);border-color:#fcd34d;"><div class="sc-lbl" style="color:var(--gold);">Head (Self)</div><div class="sc-num" id="st-self" style="color:var(--gold);">0</div><div class="sc-sub">Head doing directly</div></div>
+      </div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-hd"><div class="panel-title">🗂 Group-wise Progress</div></div>
+          <div id="dash-groups"></div>
+          <div id="dash-groups-em" class="empty" style="display:none;"><div class="empty-ic">🗂</div><div class="empty-tx">No groups yet.</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-hd"><div class="panel-title">👤 Staff Load</div></div>
+          <div id="dash-staff"></div>
+          <div id="dash-staff-em" class="empty" style="display:none;"><div class="empty-ic">👤</div><div class="empty-tx">No staff yet.</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hd"><div class="panel-title">📋 Recent Filings (Last 10 added)</div></div>
+        <div class="tbl-wrap" style="border:none;border-radius:0;box-shadow:none;overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>Assessee Name</th><th>Head</th><th>Staff</th><th>Group</th>
+              <th>Status</th><th>Due Date</th><th>Data Received</th><th>Date of Filing</th>
+              <th>Balance Sheet</th><th>E-Verify</th><th>Billed</th>
+            </tr></thead>
+            <tbody id="dash-recent"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ALL FILINGS ══ -->
+    <div class="vp" id="vw-all">
+      <div class="toolbar">
+        <div class="srch-w">
+          <svg class="srch-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="srch-inp" id="allSrch" placeholder="Search by name, PAN, group…" oninput="renderAll()">
+        </div>
+        <select class="fsel" id="fHead"   onchange="renderAll()"><option value="">All Heads</option></select>
+        <select class="fsel" id="fStaff"  onchange="renderAll()"><option value="">All Staff</option></select>
+        <select class="fsel" id="fGroup"  onchange="renderAll()"><option value="">All Groups</option></select>
+        <select class="fsel" id="fStatus" onchange="renderAll()">
+          <option value="">All Status</option>
+          <option>Not Received</option><option>WIP</option><option>Under Review</option><option>Completed</option>
+        </select>
+        <select class="fsel" id="fBS"     onchange="renderAll()">
+          <option value="">All BS</option>
+          <option>NA</option><option>Pending</option><option>Done</option>
+        </select>
+        <select class="fsel" id="fEV" onchange="renderAll()">
+          <option value="">All E-Verify</option>
+          <option>Pending</option><option>E-Verified</option>
+        </select>
+        <select class="fsel" id="fDueMonth" onchange="renderAll()">
+          <option value="">All Due Dates</option>
+          <option value="07">July</option>
+          <option value="08">August</option>
+          <option value="10">October</option>
+        </select>
+        <button class="btn btn-outline" onclick="resetFilters()">✕ Reset</button>
+      </div>
+      <div class="tbl-wrap" style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th onclick="sortBy('name',this)">Assessee Name</th>
+            <th onclick="sortBy('head',this)">Head</th>
+            <th onclick="sortBy('staffName',this)">Staff</th>
+            <th onclick="sortBy('group',this)">Group</th>
+            <th onclick="sortBy('status',this)">Status</th>
+            <th onclick="sortBy('dueDate',this)">Due Date</th>
+            <th onclick="sortBy('dataReceivedDate',this)">Data Received</th>
+            <th onclick="sortBy('dateOfFiling',this)">Date of Filing</th>
+            <th onclick="sortBy('balanceSheet',this)">Balance Sheet</th>
+            <th onclick="sortBy('eVerification',this)">E-Verify</th>
+            <th onclick="sortBy('billed',this)">Billed</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="allTbody"></tbody>
+        </table>
+      </div>
+      <div id="allEm" class="empty" style="display:none;"><div class="empty-ic">📄</div><div class="empty-tx">No filings found. Use "+ Add Filing" to get started.</div></div>
+    </div>
+
+    <!-- ══ COMPLETED TAB ══ -->
+    <div class="vp" id="vw-completed">
+      <div class="completed-summary">
+        <div class="comp-stat"><div class="comp-stat-num" id="cp-total">0</div><div class="comp-stat-lbl">Total Completed</div></div>
+        <div class="comp-stat"><div class="comp-stat-num" id="cp-ev-pending">0</div><div class="comp-stat-lbl">E-Verify Pending</div></div>
+        <div class="comp-stat" style="display:none;"><div class="comp-stat-num" id="cp-billed">0</div><div class="comp-stat-lbl">Billed</div></div>
+        <div class="comp-stat" style="display:none;"><div class="comp-stat-num" id="cp-everified">0</div><div class="comp-stat-lbl">E-Verified</div></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Staff-wise Completed Filings</div>
+          <div class="chart-wrap"><canvas id="staffPieChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Head-wise Completed Filings</div>
+          <div class="chart-wrap"><canvas id="headPieChart"></canvas></div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="srch-w">
+          <svg class="srch-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="srch-inp" id="compSrch" placeholder="Search completed filings…" oninput="renderCompleted()">
+        </div>
+        <select class="fsel" id="fCompEV" onchange="renderCompleted()">
+          <option value="">All E-Verify</option>
+          <option>Pending</option><option>E-Verified</option>
+        </select>
+        <select class="fsel" id="fCompBilled" onchange="renderCompleted()">
+          <option value="">All Billing</option>
+          <option value="Yes">Billed</option><option value="No">Not Billed</option>
+        </select>
+        <select class="fsel" id="fCompBS" onchange="renderCompleted()">
+          <option value="">All Balance Sheet</option>
+          <option value="Pending">BS Pending</option>
+          <option value="Done">BS Done</option>
+          <option value="NA">BS Not Applicable</option>
+        </select>
+      </div>
+      <!-- BS Pending Alert Banner -->
+      <div id="bsPendingBanner" style="display:none;background:var(--red-lt);border:1.5px solid #fca5a5;border-radius:9px;padding:10px 15px;margin-bottom:12px;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;font-weight:600;color:var(--red);">⚠ <span id="bsPendingCount">0</span> client(s) have Balance Sheet pending in completed filings</span>
+        <button class="fsel" onclick="document.getElementById('fCompBS').value='Pending';renderCompleted();" style="font-size:11px;font-weight:600;color:var(--red);border-color:#fca5a5;background:var(--red-lt);cursor:pointer;padding:4px 10px;">Show Only →</button>
+      </div>
+      <div class="tbl-wrap" style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th onclick="sortCompBy('name',this)">Assessee Name</th>
+            <th onclick="sortCompBy('head',this)">Head</th>
+            <th onclick="sortCompBy('staffName',this)">Staff</th>
+            <th onclick="sortCompBy('group',this)">Group</th>
+            <th onclick="sortCompBy('dataReceivedDate',this)">Data Received</th>
+            <th onclick="sortCompBy('dateOfFiling',this)">Date of Filing</th>
+            <th onclick="sortCompBy('balanceSheet',this)">Balance Sheet</th>
+            <th onclick="sortCompBy('eVerification',this)">E-Verify</th>
+            <th onclick="sortCompBy('billed',this)">Billed</th>
+            <th onclick="sortCompBy('invoiceNumber',this)">Invoice No.</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="compTbody"></tbody>
+        </table>
+      </div>
+      <div id="compEm" class="empty" style="display:none;"><div class="empty-ic">✓</div><div class="empty-tx">No completed filings yet.</div></div>
+    </div>
+
+    <!-- ══ GROUP-WISE ══ -->
+    <div class="vp" id="vw-groupwise">
+      <div class="toolbar">
+        <div class="srch-w">
+          <svg class="srch-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="srch-inp" id="grpSrch" placeholder="Search within groups…" oninput="renderGroupwise()">
+        </div>
+      </div>
+      <div id="groupwiseContainer"></div>
+    </div>
+
+    <!-- ══ STAFF-WISE ══ -->
+    <div class="vp" id="vw-staffwise">
+      <div class="toolbar">
+        <div class="srch-w">
+          <svg class="srch-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="srch-inp" id="swSrch" placeholder="Search within staff…" oninput="renderStaffwise()">
+        </div>
+      </div>
+      <div id="staffwiseContainer"></div>
+    </div>
+
+    <!-- ══ ADMIN ══ -->
+    <div class="vp" id="vw-admin">
+      <div class="admin-grid">
+        <div class="usr-card">
+          <div class="usr-card-hd">👤 Add Staff with Login</div>
+          <div class="usr-card-bd">
+            <p style="font-size:12px;color:var(--ink2);margin-bottom:12px;">Create in Firebase Console first, paste UID here.</p>
+            <div class="f-grp" style="margin-bottom:10px;"><label class="f-lbl">Full Name *</label><input class="f-inp" id="aName" placeholder="e.g. CA Rahul Verma"></div>
+            <div class="f-grp" style="margin-bottom:10px;"><label class="f-lbl">Email *</label><input class="f-inp" id="aEmail" type="email" placeholder="rahul@firm.com"></div>
+            <div class="f-grp" style="margin-bottom:10px;"><label class="f-lbl">Firebase UID *</label><input class="f-inp" id="aUid" placeholder="Paste from Firebase Console"></div>
+            <div class="f-grp" style="margin-bottom:14px;"><label class="f-lbl">Role</label><select class="f-inp" id="aRole"><option value="staff">Staff</option><option value="admin">Admin</option></select></div>
+            <button class="btn-sv" onclick="addUserWithLogin()" style="width:100%;">Add Staff Member</button>
+            <div id="addUserMsg" style="margin-top:9px;font-size:12px;display:none;"></div>
+          </div>
+        </div>
+        <div class="usr-card">
+          <div class="usr-card-hd">📋 Add Name-Only Staff</div>
+          <div class="usr-card-bd">
+            <p style="font-size:12px;color:var(--ink2);margin-bottom:12px;">No login needed. Appears in Staff dropdown only.</p>
+            <div class="f-grp" style="margin-bottom:10px;"><label class="f-lbl">Full Name *</label><input class="f-inp" id="nName" placeholder="e.g. Priya Shah"></div>
+            <div class="f-grp" style="margin-bottom:14px;"><label class="f-lbl">Designation</label><input class="f-inp" id="nDesig" placeholder="e.g. Article Assistant"></div>
+            <button class="btn-sv" onclick="addNameOnlyStaff()" style="width:100%;background:var(--blue);">Add to Dropdown</button>
+            <div id="addNameMsg" style="margin-top:9px;font-size:12px;display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="usr-card" style="margin-top:14px;">
+        <div class="usr-card-hd">🏷 Manage Heads</div>
+        <div class="usr-card-bd">
+          <p style="font-size:12px;color:var(--ink2);margin-bottom:11px;">Add Partners / Seniors who appear in the Head dropdown when adding filings.</p>
+          <div id="headChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:28px;"></div>
+          <div style="display:flex;gap:7px;">
+            <input class="f-inp" id="headNew" placeholder="e.g. CA Arun Gandhi" style="flex:1;" onkeydown="if(event.key==='Enter')addHead()">
+            <button class="btn-sv" onclick="addHead()">+ Add</button>
+          </div>
+          <div id="headMsg" style="margin-top:8px;font-size:12px;display:none;"></div>
+        </div>
+      </div>
+
+      <!-- BULK IMPORT SECTION -->
+      <div class="usr-card" style="margin-top:14px;">
+        <div class="usr-card-hd">📥 Bulk Import Clients (CSV)</div>
+        <div class="usr-card-bd">
+          <p style="font-size:12px;color:var(--ink2);margin-bottom:10px;">
+            Upload a CSV with columns: <strong>name, head, staffName, group, dueDate</strong> (other fields optional).<br>
+            New records will be added. Duplicate names in the same season may be imported — verify before importing.
+          </p>
+          <div class="import-area" id="importArea" onclick="document.getElementById('csvFileInput').click()"
+            ondragover="event.preventDefault();this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="handleCsvDrop(event)">
+            <div style="font-size:28px;margin-bottom:8px;">📂</div>
+            <div style="font-size:13px;font-weight:600;color:var(--primary);">Click to browse or drag &amp; drop CSV</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:4px;">Supports .csv files · UTF-8 encoding</div>
+          </div>
+          <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleCsvFile(event)">
+          <div id="importPreview" style="margin-top:12px;display:none;">
+            <div id="importStats" style="font-size:12px;color:var(--ink2);margin-bottom:8px;"></div>
+            <button class="btn-sv" id="importBtn" onclick="doImport()" style="margin-right:8px;">Import Now</button>
+            <button class="btn-cn" onclick="cancelImport()">Cancel</button>
+          </div>
+          <div id="importMsg" style="margin-top:8px;font-size:12px;display:none;"></div>
+        </div>
+      </div>
+
+      <div class="usr-card" style="margin-top:14px;">
+        <div class="usr-card-hd">👥 All Team Members</div>
+        <div class="usr-card-bd" style="padding:0;">
+          <table class="st-tbl">
+            <thead><tr><th>Name</th><th>Email / Type</th><th>Role</th><th>Filings</th><th>Remove</th></tr></thead>
+            <tbody id="staffTb"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding:13px 16px;background:var(--primary-lt);border:1px solid #93c5fd;border-radius:9px;font-size:12px;color:var(--primary-dk);line-height:1.7;">
+        <strong>⚠ Security Reminder:</strong> Update Firestore Security Rules to restrict access by <code>auth.uid</code> before sharing with the full team. Collections used: <code>ift_filings</code>, <code>ift_users</code>, <code>ift_heads</code>.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ ADD / EDIT FILING MODAL ══ -->
+<div class="overlay" id="mOverlay" onclick="ovClick(event)">
+  <div class="modal">
+    <div class="m-hd"><span id="mTitle">New Filing</span><button class="m-cl" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="f-grp-m f-full"><label class="f-lbl-m">Assessee Name *</label><input class="f-inp-m" id="fName" placeholder="e.g. Ramesh Kumar Sharma"></div>
+      <div class="f-grp-m" style="display:none;"><label class="f-lbl-m">PAN</label><input class="f-inp-m" id="fPan" placeholder="e.g. ABCDE1234F" style="text-transform:uppercase;"></div>
+      <div class="f-grp-m"><label class="f-lbl-m">Head *</label><select class="f-sel-m" id="fHead2" onchange="onHeadChange()"><option value="">— Select Head —</option></select></div>
+      <div class="f-grp-m"><label class="f-lbl-m">Staff *</label>
+        <select class="f-sel-m" id="fStaff2"><option value="">— Select Staff —</option></select>
+        <div id="staffSelfNote" style="display:none;margin-top:4px;font-size:10px;color:var(--gold);font-weight:600;">⚑ Head handling this filing directly</div>
+      </div>
+      <div class="f-grp-m"><label class="f-lbl-m">Group</label><input class="f-inp-m" id="fGrp" placeholder="e.g. Sharma Family, ABC Group"></div>
+      <div class="f-grp-m"><label class="f-lbl-m">Due Date</label><input type="date" class="f-inp-m" id="fDueDate" title="ITR due date for this client (July / Aug / Oct)"></div>
+      <div class="f-grp-m"><label class="f-lbl-m">Status *</label>
+        <select class="f-sel-m" id="fStatus2" onchange="onStatusChange()">
+          <option>Not Received</option>
+          <option>WIP</option>
+          <option>Under Review</option>
+          <option>Completed</option>
+        </select>
+      </div>
+      <!-- NEW: Data Received Date -->
+      <div class="f-grp-m"><label class="f-lbl-m">Data Received Date</label><input type="date" class="f-inp-m" id="fDataReceived"></div>
+      <div class="f-grp-m" id="dofGroup">
+        <label class="f-lbl-m">Date of Filing <span id="dofNote" style="color:var(--ink3);font-size:9px;font-weight:400;text-transform:none;">(Available when Completed)</span></label>
+        <input type="date" class="f-inp-m" id="fDof" disabled style="opacity:.45;cursor:not-allowed;" onchange="updateEvDaysLeft()">
+      </div>
+      <div class="f-grp-m"><label class="f-lbl-m">Balance Sheet</label>
+        <select class="f-sel-m" id="fBS2">
+          <option>NA</option><option>Pending</option><option>Done</option>
+        </select>
+      </div>
+      <!-- NEW: E-Verification -->
+      <div class="f-grp-m" id="evGroup">
+        <label class="f-lbl-m">E-Verification <span id="evNote" style="color:var(--ink3);font-size:9px;font-weight:400;text-transform:none;">(Available when Completed)</span></label>
+        <select class="f-sel-m" id="fEVerify" disabled style="opacity:.45;cursor:not-allowed;">
+          <option value="Pending">Pending</option>
+          <option value="E-Verified">E-Verified</option>
+        </select>
+        <div id="evDaysInfo" style="display:none;margin-top:5px;padding:5px 9px;border-radius:6px;font-size:11px;font-weight:600;"></div>
+      </div>
+      <!-- NEW: Billed -->
+      <div class="f-grp-m"><label class="f-lbl-m">Billed?</label>
+        <select class="f-sel-m" id="fBilled" onchange="toggleInvoiceField()">
+          <option value="No">No</option>
+          <option value="Yes">Yes</option>
+        </select>
+      </div>
+      <!-- NEW: Invoice Number — shown only when Billed = Yes -->
+      <div class="f-grp-m bill-row" id="invoiceRow">
+        <label class="f-lbl-m">Invoice Number</label>
+        <input class="f-inp-m" id="fInvoice" placeholder="e.g. INV/2024-25/001">
+      </div>
+      <div class="f-grp-m f-full"><label class="f-lbl-m">Remarks / Notes</label><textarea class="f-txt-m" id="fNotes" placeholder="Documents pending, observations, special instructions…"></textarea></div>
+    </div>
+    <div class="m-ft"><button class="btn-cn" onclick="closeModal()">Cancel</button><button class="btn-sv" onclick="saveFiling()">Save Filing</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════
+//  STATE
+// ═══════════════════════
+let filings=[],staffList=[],headsList=[];
+let currentUser=null,currentRole=null,currentName='';
+let unsubFilings=null,unsubStaff=null,unsubHeads=null;
+let editId=null,sortField='name',sortDir=1;
+let sortCompField='name',sortCompDir=1;
+let pendingImportRows=[];
+let staffChart=null,headChart=null;
+const ADMIN_EMAILS=['gandhiarun2012@gmail.com']; // ← update as needed
+
+// ═══════════════════════
+//  BOOT
+// ═══════════════════════
+window.appBoot=function(){
+  const{onAuthStateChanged}=window._fns;
+  onAuthStateChanged(window._auth,async user=>{
+    hide('loadScreen');
+    if(user){currentUser=user;await loadProfile(user);showApp();}
+    else showLogin();
+  });
+};
+
+async function loadProfile(user){
+  const{doc,getDoc,setDoc}=window._fns;
+  try{
+    const snap=await getDoc(doc(window._db,'ift_users',user.uid));
+    if(snap.exists()){
+      const d=snap.data();
+      currentRole=ADMIN_EMAILS.includes(user.email)?'admin':(d.role||'staff');
+      currentName=d.name||user.email;
+    }else{
+      currentRole=ADMIN_EMAILS.includes(user.email)?'admin':'staff';
+      currentName=user.email;
+      await setDoc(doc(window._db,'ift_users',user.uid),{email:user.email,name:user.email,role:currentRole,createdAt:new Date().toISOString()});
+    }
+  }catch(e){currentRole=ADMIN_EMAILS.includes(user.email)?'admin':'staff';currentName=user.email;}
+}
+
+function showLogin(){hide('appShell');show('loginScreen');}
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  const btn=document.getElementById('loginBtn');
+  document.getElementById('loginErr').style.display='none';
+  if(!email||!pass){showLoginErr('Please enter email and password.');return;}
+  btn.disabled=true;btn.textContent='Signing in…';
+  try{await window._fns.signInWithEmailAndPassword(window._auth,email,pass);}
+  catch(e){
+    const m={'auth/user-not-found':'No account found.','auth/wrong-password':'Incorrect password.','auth/invalid-credential':'Invalid email or password.','auth/too-many-requests':'Too many attempts. Try later.'};
+    showLoginErr(m[e.code]||'Sign-in failed.');
+    btn.disabled=false;btn.textContent='Sign In';
+  }
+}
+function showLoginErr(m){const e=document.getElementById('loginErr');e.textContent=m;e.style.display='block';}
+async function doLogout(){
+  [unsubFilings,unsubStaff,unsubHeads].forEach(u=>u&&u());
+  await window._fns.signOut(window._auth);
+  currentUser=null;currentRole=null;currentName='';filings=[];staffList=[];headsList=[];
+  showLogin();
+}
+
+function showApp(){
+  hide('loginScreen');show('appShell');
+  const ini=(currentName.split(' ').map(w=>w[0]).join('').slice(0,2)||'?').toUpperCase();
+  document.getElementById('userAvatar').textContent=ini;
+  document.getElementById('userName').textContent=currentName;
+  document.getElementById('userRole').textContent=currentRole.toUpperCase();
+  if(currentRole==='admin')document.getElementById('nt-admin').style.display='flex';
+  subscribeFilings();subscribeStaff();subscribeHeads();
+}
+
+// ═══════════════════════
+//  SUBSCRIPTIONS
+// ═══════════════════════
+function subscribeFilings(){
+  const{collection,query,where,onSnapshot}=window._fns;
+  const db=window._db;
+  const q=currentRole==='admin'
+    ?query(collection(db,'ift_filings'))
+    :query(collection(db,'ift_filings'),where('staffUid','==',currentUser.uid));
+  unsubFilings=onSnapshot(q,snap=>{
+    filings=snap.docs.map(d=>({id:d.id,...d.data()}));
+    refreshAll();
+  });
+}
+function subscribeStaff(){
+  const{collection,onSnapshot}=window._fns;
+  unsubStaff=onSnapshot(collection(window._db,'ift_users'),snap=>{
+    staffList=snap.docs.map(d=>({uid:d.id,...d.data()}));
+    populateDropdowns();renderStaffTable();
+  });
+}
+function subscribeHeads(){
+  const{collection,onSnapshot}=window._fns;
+  unsubHeads=onSnapshot(collection(window._db,'ift_heads'),snap=>{
+    headsList=snap.docs.map(d=>({id:d.id,...d.data()}));
+    populateDropdowns();renderHeadChips();
+  });
+}
+
+// ═══════════════════════
+//  DROPDOWNS
+// ═══════════════════════
+function populateDropdowns(){
+  // fStaff filter (All Filings toolbar only — not modal staff, which uses onHeadChange)
+  ['fStaff'].forEach(sid=>{
+    const el=document.getElementById(sid);if(!el)return;
+    const prev=el.value;
+    el.innerHTML='<option value="">All Staff</option>';
+    staffList.forEach(s=>{const o=document.createElement('option');o.value=s.uid;o.textContent=s.name||s.email;el.appendChild(o);});
+    if(prev)el.value=prev;
+  });
+  ['fHead','fHead2'].forEach(hid=>{
+    const el=document.getElementById(hid);if(!el)return;
+    const prev=el.value;
+    el.innerHTML=hid==='fHead'?'<option value="">All Heads</option>':'<option value="">— Select Head —</option>';
+    headsList.forEach(h=>{const o=document.createElement('option');o.value=h.name;o.textContent=h.name;el.appendChild(o);});
+    if(prev)el.value=prev;
+  });
+}
+
+function populateGroupFilter(){
+  const el=document.getElementById('fGroup');
+  const prev=el.value;
+  el.innerHTML='<option value="">All Groups</option>';
+  const grps=[...new Set(filings.map(f=>f.group||'').filter(Boolean))].sort();
+  grps.forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;el.appendChild(o);});
+  if(prev)el.value=prev;
+}
+
+// ═══════════════════════
+//  REFRESH
+// ═══════════════════════
+function refreshAll(){
+  updateStats();
+  renderDashboard();
+  populateGroupFilter();
+  const av=document.querySelector('.vp.active');
+  if(av){
+    const id=av.id;
+    if(id==='vw-all')renderAll();
+    if(id==='vw-groupwise')renderGroupwise();
+    if(id==='vw-staffwise')renderStaffwise();
+    if(id==='vw-completed')renderCompleted();
+  }
+}
+
+function updateStats(){
+  document.getElementById('st-all').textContent=filings.length;
+  document.getElementById('st-ns').textContent=filings.filter(f=>f.status==='Not Received').length;
+  document.getElementById('st-wip').textContent=filings.filter(f=>f.status==='WIP').length;
+  document.getElementById('st-ur').textContent=filings.filter(f=>f.status==='Under Review').length;
+  document.getElementById('st-done').textContent=filings.filter(f=>f.status==='Completed').length;
+  document.getElementById('st-bsp').textContent=filings.filter(f=>f.balanceSheet==='Pending').length;
+  document.getElementById('st-bsd').textContent=filings.filter(f=>f.balanceSheet==='Done').length;
+  const selfEl=document.getElementById('st-self');
+  if(selfEl)selfEl.textContent=filings.filter(f=>f.isSelfHandled).length;
+}
+
+// ═══════════════════════
+//  DASHBOARD
+// ═══════════════════════
+function renderDashboard(){
+  const grpMap={};
+  filings.forEach(f=>{const g=f.group||'(No Group)';if(!grpMap[g])grpMap[g]={t:0,d:0};grpMap[g].t++;if(f.status==='Completed')grpMap[g].d++;});
+  const grpKeys=Object.keys(grpMap).sort();
+  const dgEl=document.getElementById('dash-groups');
+  document.getElementById('dash-groups-em').style.display=grpKeys.length?'none':'block';
+  dgEl.innerHTML=grpKeys.map(g=>{
+    const{t,d}=grpMap[g];const pct=t?Math.round(d/t*100):0;
+    return `<div class="cat-row"><div class="cat-nm">${esc(g)}</div><div class="cat-bw"><div class="cat-bf" style="width:${pct}%;background:var(--primary);"></div></div><div class="cat-cnt" style="color:var(--primary);">${t}</div></div>`;
+  }).join('');
+
+  const stMap={};
+  filings.forEach(f=>{const s=f.staffName||'Unassigned';if(!stMap[s])stMap[s]={t:0,d:0};stMap[s].t++;if(f.status==='Completed')stMap[s].d++;});
+  const stKeys=Object.keys(stMap).sort();
+  const dsEl=document.getElementById('dash-staff');
+  document.getElementById('dash-staff-em').style.display=stKeys.length?'none':'block';
+  dsEl.innerHTML=stKeys.map(s=>{
+    const{t,d}=stMap[s];const pct=t?Math.round(d/t*100):0;
+    return `<div class="cat-row"><div class="cat-nm">${esc(s)}</div><div class="cat-bw"><div class="cat-bf" style="width:${pct}%;background:#3b82f6;"></div></div><div class="cat-cnt" style="color:#3b82f6;">${t}</div></div>`;
+  }).join('');
+
+  const recent=[...filings].sort((a,b)=>(b.createdAt||'')>(a.createdAt||'')?1:-1).slice(0,10);
+  document.getElementById('dash-recent').innerHTML=recent.length
+    ?recent.map(f=>rowHtml(f,false)).join('')
+    :`<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--ink3);">No filings yet — add one with "+ Add Filing".</td></tr>`;
+}
+
+// ═══════════════════════
+//  ALL FILINGS
+// ═══════════════════════
+function renderAll(){
+  const srch=(document.getElementById('allSrch').value||'').toLowerCase();
+  const fH=(document.getElementById('fHead').value||'');
+  const fSt=(document.getElementById('fStaff').value||'');
+  const fGr=(document.getElementById('fGroup').value||'');
+  const fStat=(document.getElementById('fStatus').value||'');
+  const fBS=(document.getElementById('fBS').value||'');
+  const fEV=(document.getElementById('fEV').value||'');
+  const fDueMonth=(document.getElementById('fDueMonth')?.value||'');
+
+  let data=[...filings].filter(f=>{
+    if(srch&&!((f.name||'').toLowerCase().includes(srch)||(f.group||'').toLowerCase().includes(srch)||(f.staffName||'').toLowerCase().includes(srch)))return false;
+    if(fH&&(f.head||'')!==fH)return false;
+    if(fSt&&f.staffUid!==fSt)return false;
+    if(fGr&&(f.group||'')!==fGr)return false;
+    if(fStat&&f.status!==fStat)return false;
+    if(fBS&&f.balanceSheet!==fBS)return false;
+    if(fEV&&(f.eVerification||'Pending')!==fEV)return false;
+    if(fDueMonth&&f.dueDate){const m=(f.dueDate||'').split('-')[1];if(m!==fDueMonth)return false;}
+    else if(fDueMonth&&!f.dueDate)return false;
+    return true;
+  });
+  data.sort((a,b)=>{const av=(a[sortField]||'').toString().toLowerCase();const bv=(b[sortField]||'').toString().toLowerCase();return av<bv?-sortDir:av>bv?sortDir:0;});
+
+  const tbody=document.getElementById('allTbody');
+  const em=document.getElementById('allEm');
+  if(!data.length){tbody.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  tbody.innerHTML=data.map(f=>rowHtml(f,true)).join('');
+}
+
+// ═══════════════════════
+//  COMPLETED TAB
+// ═══════════════════════
+function renderCompleted(){
+  const srch=(document.getElementById('compSrch').value||'').toLowerCase();
+  const fEV=(document.getElementById('fCompEV').value||'');
+  const fBill=(document.getElementById('fCompBilled').value||'');
+  const fCompBS=(document.getElementById('fCompBS')?.value||'');
+
+  let data=filings.filter(f=>f.status==='Completed');
+
+  // Summary stats
+  document.getElementById('cp-total').textContent=data.length;
+  document.getElementById('cp-billed').textContent=data.filter(f=>f.billed==='Yes').length;
+  document.getElementById('cp-everified').textContent=data.filter(f=>f.eVerification==='E-Verified').length;
+  document.getElementById('cp-ev-pending').textContent=data.filter(f=>(f.eVerification||'Pending')==='Pending').length;
+
+  // BS Pending banner
+  const bsPendingCt=data.filter(f=>f.balanceSheet==='Pending').length;
+  const bsBanner=document.getElementById('bsPendingBanner');
+  if(bsBanner){
+    if(bsPendingCt>0){bsBanner.style.display='flex';document.getElementById('bsPendingCount').textContent=bsPendingCt;}
+    else{bsBanner.style.display='none';}
+  }
+
+  // Charts
+  renderCompletedCharts(data);
+
+  // Filter
+  data=data.filter(f=>{
+    if(srch&&!((f.name||'').toLowerCase().includes(srch)||(f.staffName||'').toLowerCase().includes(srch)))return false;
+    if(fEV&&(f.eVerification||'Pending')!==fEV)return false;
+    if(fBill&&(f.billed||'No')!==fBill)return false;
+    if(fCompBS&&(f.balanceSheet||'NA')!==fCompBS)return false;
+    return true;
+  });
+  data.sort((a,b)=>{const av=(a[sortCompField]||'').toString().toLowerCase();const bv=(b[sortCompField]||'').toString().toLowerCase();return av<bv?-sortCompDir:av>bv?sortCompDir:0;});
+
+  const tbody=document.getElementById('compTbody');
+  const em=document.getElementById('compEm');
+  if(!data.length){tbody.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  tbody.innerHTML=data.map(f=>compRowHtml(f)).join('');
+}
+
+function renderCompletedCharts(completedData){
+  const PIE_COLORS=['#1a56a0','#3b82f6','#60a5fa','#93c5fd','#1d4ed8','#2563eb','#0ea5e9','#38bdf8','#7c3aed','#a78bfa'];
+
+  // Staff pie
+  const stMap={};
+  completedData.forEach(f=>{const s=f.staffName||'Unassigned';stMap[s]=(stMap[s]||0)+1;});
+  const stLabels=Object.keys(stMap);const stData=stLabels.map(k=>stMap[k]);
+
+  if(staffChart)staffChart.destroy();
+  const sCtx=document.getElementById('staffPieChart').getContext('2d');
+  staffChart=new Chart(sCtx,{
+    type:'doughnut',
+    data:{labels:stLabels,datasets:[{data:stData,backgroundColor:PIE_COLORS.slice(0,stLabels.length),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10}}}}
+  });
+
+  // Head pie
+  const hMap={};
+  completedData.forEach(f=>{const h=f.head||'No Head';hMap[h]=(hMap[h]||0)+1;});
+  const hLabels=Object.keys(hMap);const hData=hLabels.map(k=>hMap[k]);
+
+  if(headChart)headChart.destroy();
+  const hCtx=document.getElementById('headPieChart').getContext('2d');
+  headChart=new Chart(hCtx,{
+    type:'doughnut',
+    data:{labels:hLabels,datasets:[{data:hData,backgroundColor:PIE_COLORS.slice(0,hLabels.length).reverse(),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10}}}}
+  });
+}
+
+// ═══════════════════════
+//  GROUP-WISE
+// ═══════════════════════
+function renderGroupwise(){
+  const srch=(document.getElementById('grpSrch').value||'').toLowerCase();
+  const grpMap={};
+  filings.forEach(f=>{const g=f.group||'(No Group)';if(!grpMap[g])grpMap[g]=[];grpMap[g].push(f);});
+  const container=document.getElementById('groupwiseContainer');
+  let html='';
+  Object.keys(grpMap).sort().forEach(g=>{
+    let rows=grpMap[g];
+    if(srch)rows=rows.filter(f=>(f.name||'').toLowerCase().includes(srch)||(f.group||'').toLowerCase().includes(srch));
+    if(!rows.length)return;
+    const done=rows.filter(r=>r.status==='Completed').length;
+    html+=`<div class="group-section">
+      <div class="group-section-hd">${esc(g)}<span class="cnt-badge">${rows.length}</span><span style="font-size:11px;color:var(--ink3);font-family:'Outfit',sans-serif;font-weight:400;">${done}/${rows.length} completed</span></div>
+      <div class="tbl-wrap" style="border-top-left-radius:0;border-top-right-radius:0;border-top:none;overflow-x:auto;">
+        <table><thead><tr><th>Assessee Name</th><th>Head</th><th>Staff</th><th>Status</th><th>Due Date</th><th>Data Received</th><th>Date of Filing</th><th>E-Verify</th><th>Billed</th><th>Actions</th></tr></thead>
+        <tbody>${rows.map(f=>rowHtml(f,true)).join('')}</tbody></table>
+      </div></div>`;
+  });
+  container.innerHTML=html||'<div class="empty"><div class="empty-ic">🗂</div><div class="empty-tx">No groups found.</div></div>';
+}
+
+// ═══════════════════════
+//  STAFF-WISE
+// ═══════════════════════
+function renderStaffwise(){
+  const srch=(document.getElementById('swSrch').value||'').toLowerCase();
+  const stMap={};
+  filings.forEach(f=>{const s=f.staffName||'Unassigned';if(!stMap[s])stMap[s]=[];stMap[s].push(f);});
+  const container=document.getElementById('staffwiseContainer');
+  let html='';
+  Object.keys(stMap).sort().forEach(s=>{
+    let rows=stMap[s];
+    if(srch)rows=rows.filter(f=>(f.name||'').toLowerCase().includes(srch)||(f.group||'').toLowerCase().includes(srch));
+    if(!rows.length)return;
+    const done=rows.filter(r=>r.status==='Completed').length;
+    html+=`<div class="group-section">
+      <div class="group-section-hd">${esc(s)}<span class="cnt-badge">${rows.length}</span><span style="font-size:11px;color:var(--ink3);font-family:'Outfit',sans-serif;font-weight:400;">${done}/${rows.length} completed</span></div>
+      <div class="tbl-wrap" style="border-top-left-radius:0;border-top-right-radius:0;border-top:none;overflow-x:auto;">
+        <table><thead><tr><th>Assessee Name</th><th>Head</th><th>Group</th><th>Status</th><th>Due Date</th><th>Data Received</th><th>Date of Filing</th><th>E-Verify</th><th>Billed</th><th>Actions</th></tr></thead>
+        <tbody>${rows.map(f=>rowHtml(f,true)).join('')}</tbody></table>
+      </div></div>`;
+  });
+  container.innerHTML=html||'<div class="empty"><div class="empty-ic">👤</div><div class="empty-tx">No staff data found.</div></div>';
+}
+
+// ═══════════════════════
+//  ROW HTML (main tables)
+// ═══════════════════════
+function rowHtml(f,showAct=false){
+  const smap={'Not Received':'ss-ns','WIP':'ss-wip','Under Review':'ss-ur','Completed':'ss-done'};
+  const scls=smap[f.status]||'ss-ns';
+  const bcls={'NA':'bs-na','Pending':'bs-pending','Done':'bs-done'}[f.balanceSheet]||'bs-na';
+  const ev=f.eVerification||'Pending';
+  const evcls=ev==='E-Verified'?'ev-done':'ev-pending';
+  const billed=f.billed||'No';
+  const billcls=billed==='Yes'?'bill-yes':'bill-no';
+  const dof=f.dateOfFiling?`<span class="dof-ok">✓ ${fmtD(f.dateOfFiling)}</span>`:`<span class="dof-blank">—</span>`;
+  const drd=f.dataReceivedDate?fmtD(f.dataReceivedDate):'—';
+  const staffDisplay=f.isSelfHandled
+    ?`<span style="color:var(--gold);font-weight:600;font-size:11px;">⚑ ${esc(f.staffName||'—')}</span>`
+    :esc(f.staffName||'—');
+  const act=showAct?`<td><div class="act">
+    <button class="ib" onclick="event.stopPropagation();editFiling('${f.id}')" title="Edit">✎</button>
+    <button class="ib del" onclick="event.stopPropagation();delFiling('${f.id}')" title="Delete">✕</button>
+  </div></td>`:'';
+  return `<tr onclick="editFiling('${f.id}')">
+    <td><div class="cl-n">${esc(f.name)}</div></td>
+    <td style="font-size:12px;color:var(--ink2);">${esc(f.head||'—')}</td>
+    <td style="font-size:12px;">${staffDisplay}</td>
+    <td>${f.group?`<span class="grp-badge">${esc(f.group)}</span>`:'<span style="color:var(--ink3);font-size:12px;">—</span>'}</td>
+    <td><span class="ss ${scls}">${esc(f.status||'Not Received')}</span></td>
+    <td style="font-size:12px;color:var(--ink2);">${f.dueDate?fmtD(f.dueDate):'—'}</td>
+    <td style="font-size:12px;color:var(--ink2);">${drd}</td>
+    <td>${dof}</td>
+    <td><span class="bs ${bcls}">${esc(f.balanceSheet||'NA')}</span></td>
+    <td><span class="ev ${evcls}">${esc(ev)}</span></td>
+    <td><span class="bill ${billcls}">${billed}</span></td>
+    ${act}
+  </tr>`;
+}
+
+// ═══════════════════════
+//  COMPLETED ROW HTML
+// ═══════════════════════
+function evDaysLeftHtml(dof,ev){
+  if(ev==='E-Verified')return `<span class="ev ev-done">E-Verified ✓</span>`;
+  if(!dof)return `<span class="ev ev-pending">Pending</span>`;
+  const filed=new Date(dof);const deadline=new Date(filed);deadline.setDate(deadline.getDate()+30);
+  const today=new Date();today.setHours(0,0,0,0);
+  const diff=Math.round((deadline-today)/(1000*60*60*24));
+  if(diff<0)return `<span class="ev ev-pending" style="background:var(--red-lt);color:var(--red);border-color:#fca5a5;">Overdue ${Math.abs(diff)}d</span>`;
+  if(diff<=7)return `<span class="ev ev-pending" style="background:var(--orange-lt);color:var(--orange);border-color:#fed7aa;">${diff}d left ⚡</span>`;
+  return `<span class="ev ev-pending">${diff}d left</span>`;
+}
+
+function compRowHtml(f){
+  const bcls={'NA':'bs-na','Pending':'bs-pending','Done':'bs-done'}[f.balanceSheet]||'bs-na';
+  const ev=f.eVerification||'Pending';
+  const billed=f.billed||'No';
+  const billcls=billed==='Yes'?'bill-yes':'bill-no';
+  const dof=f.dateOfFiling?fmtD(f.dateOfFiling):'—';
+  const drd=f.dataReceivedDate?fmtD(f.dataReceivedDate):'—';
+  const bsHighlight=f.balanceSheet==='Pending'?' style="background:#fff1f2;"':'';
+  return `<tr onclick="editFiling('${f.id}')"${bsHighlight}>
+    <td><div class="cl-n">${esc(f.name)}</div></td>
+    <td style="font-size:12px;color:var(--ink2);">${esc(f.head||'—')}</td>
+    <td style="font-size:12px;color:var(--ink2);">${esc(f.staffName||'—')}</td>
+    <td>${f.group?`<span class="grp-badge">${esc(f.group)}</span>`:'<span style="color:var(--ink3);">—</span>'}</td>
+    <td style="font-size:12px;color:var(--ink2);">${drd}</td>
+    <td style="font-size:12px;color:var(--green);font-weight:600;">✓ ${dof}</td>
+    <td><span class="bs ${bcls}">${esc(f.balanceSheet||'NA')}</span></td>
+    <td>${evDaysLeftHtml(f.dateOfFiling,ev)}</td>
+    <td><span class="bill ${billcls}">${billed}</span></td>
+    <td style="font-size:12px;color:var(--ink2);">${esc(f.invoiceNumber||'—')}</td>
+    <td><div class="act">
+      <button class="ib" onclick="event.stopPropagation();editFiling('${f.id}')" title="Edit">✎</button>
+      <button class="ib del" onclick="event.stopPropagation();delFiling('${f.id}')" title="Delete">✕</button>
+    </div></td>
+  </tr>`;
+}
+
+// ═══════════════════════
+//  MODAL
+// ═══════════════════════
+function onHeadChange(){
+  const headVal=document.getElementById('fHead2').value;
+  const sSel=document.getElementById('fStaff2');
+  const note=document.getElementById('staffSelfNote');
+  // Re-populate staff dropdown, prepending a "Head (Self)" option for this head
+  const prev=sSel.value;
+  sSel.innerHTML='<option value="">— Select Staff —</option>';
+  if(headVal){
+    const selfOpt=document.createElement('option');
+    selfOpt.value='SELF_'+headVal;
+    selfOpt.textContent='⚑ '+headVal+' (Head — Self)';
+    selfOpt.style.fontWeight='600';selfOpt.style.color='#b45309';
+    sSel.appendChild(selfOpt);
+  }
+  staffList.forEach(s=>{
+    const o=document.createElement('option');o.value=s.uid;o.textContent=s.name||s.email;sSel.appendChild(o);
+  });
+  if(prev)sSel.value=prev;
+  // Show/hide note
+  const isSelf=sSel.value.startsWith('SELF_');
+  if(note)note.style.display=isSelf?'block':'none';
+}
+
+// Add change listener to staff dropdown to show/hide self note
+document.addEventListener('DOMContentLoaded',()=>{
+  const sSel=document.getElementById('fStaff2');
+  if(sSel)sSel.addEventListener('change',()=>{
+    const note=document.getElementById('staffSelfNote');
+    if(note)note.style.display=sSel.value.startsWith('SELF_')?'block':'none';
+  });
+});
+
+function toggleInvoiceField(){
+  const billed=document.getElementById('fBilled').value;
+  const row=document.getElementById('invoiceRow');
+  if(billed==='Yes'){row.classList.add('visible');row.classList.add('form-grid');}
+  else{row.classList.remove('visible');row.classList.remove('form-grid');}
+}
+function onStatusChange(){
+  const status=document.getElementById('fStatus2').value;
+  const isCompleted=(status==='Completed');
+  const dofEl=document.getElementById('fDof');
+  const evEl=document.getElementById('fEVerify');
+  const dofNote=document.getElementById('dofNote');
+  const evNote=document.getElementById('evNote');
+  dofEl.disabled=!isCompleted;
+  dofEl.style.opacity=isCompleted?'1':'0.45';
+  dofEl.style.cursor=isCompleted?'pointer':'not-allowed';
+  evEl.disabled=!isCompleted;
+  evEl.style.opacity=isCompleted?'1':'0.45';
+  evEl.style.cursor=isCompleted?'pointer':'not-allowed';
+  if(dofNote)dofNote.style.display=isCompleted?'none':'inline';
+  if(evNote)evNote.style.display=isCompleted?'none':'inline';
+  // Auto-set filing date to today if Completed and no date set
+  if(isCompleted&&!dofEl.value){
+    const today=new Date().toISOString().split('T')[0];
+    dofEl.value=today;
+  }
+  // Recalculate e-verify days left display
+  updateEvDaysLeft();
+}
+
+function updateEvDaysLeft(){
+  const dof=document.getElementById('fDof').value;
+  const infoEl=document.getElementById('evDaysInfo');
+  if(!infoEl)return;
+  if(!dof){infoEl.style.display='none';return;}
+  const filed=new Date(dof);
+  const deadline=new Date(filed);
+  deadline.setDate(deadline.getDate()+30);
+  const today=new Date();today.setHours(0,0,0,0);
+  const diff=Math.round((deadline-today)/(1000*60*60*24));
+  if(diff<0){
+    infoEl.textContent=`⚠ E-Verify deadline PASSED by ${Math.abs(diff)} days`;
+    infoEl.style.color='var(--red)';infoEl.style.background='var(--red-lt)';infoEl.style.border='1px solid #fca5a5';
+  }else if(diff===0){
+    infoEl.textContent='⚠ E-Verify due TODAY';
+    infoEl.style.color='var(--red)';infoEl.style.background='var(--red-lt)';infoEl.style.border='1px solid #fca5a5';
+  }else if(diff<=7){
+    infoEl.textContent=`⚡ ${diff} day(s) left for E-Verification (Deadline: ${fmtD(deadline.toISOString())})`;
+    infoEl.style.color='var(--orange)';infoEl.style.background='var(--orange-lt)';infoEl.style.border='1px solid #fed7aa';
+  }else{
+    infoEl.textContent=`✓ ${diff} days left for E-Verification (Deadline: ${fmtD(deadline.toISOString())})`;
+    infoEl.style.color='var(--green)';infoEl.style.background='var(--green-lt)';infoEl.style.border='1px solid #86efac';
+  }
+  infoEl.style.display='block';
+}
+
+function openModal(item=null){
+  editId=item?item.id:null;
+  document.getElementById('mTitle').textContent=item?'Edit Filing':'New Filing';
+  document.getElementById('fName').value=item?.name||'';
+  document.getElementById('fPan').value=item?.pan||'';
+  document.getElementById('fGrp').value=item?.group||'';
+  document.getElementById('fDueDate').value=item?.dueDate||'';
+  document.getElementById('fDataReceived').value=item?.dataReceivedDate||'';
+  document.getElementById('fDof').value=item?.dateOfFiling||'';
+  document.getElementById('fStatus2').value=item?.status||'Not Received';
+  document.getElementById('fBS2').value=item?.balanceSheet||'NA';
+  document.getElementById('fEVerify').value=item?.eVerification||'Pending';
+  document.getElementById('fBilled').value=item?.billed||'No';
+  document.getElementById('fInvoice').value=item?.invoiceNumber||'';
+  document.getElementById('fNotes').value=item?.notes||'';
+  const hSel=document.getElementById('fHead2');
+  if(item?.head)hSel.value=item.head;else hSel.value='';
+  // Trigger head change to repopulate staff (including self option)
+  onHeadChange();
+  const sSel=document.getElementById('fStaff2');
+  if(item?.staffUid)sSel.value=item.staffUid;else sSel.value='';
+  // Show self note if applicable
+  const note=document.getElementById('staffSelfNote');
+  if(note)note.style.display=(sSel.value||'').startsWith('SELF_')?'block':'none';
+  toggleInvoiceField();
+  onStatusChange();
+  document.getElementById('mOverlay').classList.add('open');
+}
+function closeModal(){document.getElementById('mOverlay').classList.remove('open');editId=null;}
+function ovClick(e){if(e.target===document.getElementById('mOverlay'))closeModal();}
+function editFiling(id){const it=filings.find(f=>f.id===id);if(it)openModal(it);}
+
+async function delFiling(id){
+  if(!confirm('Delete this filing? This cannot be undone.'))return;
+  try{await window._fns.deleteDoc(window._fns.doc(window._db,'ift_filings',id));toast('Deleted');}
+  catch(e){toast('Delete failed','er');}
+}
+
+async function saveFiling(){
+  const name=document.getElementById('fName').value.trim();
+  const head=document.getElementById('fHead2').value;
+  const staffUid=document.getElementById('fStaff2').value;
+  if(!name){toast('Assessee name is required','er');return;}
+  if(!head){toast('Please select a Head','er');return;}
+  if(!staffUid){toast('Please select Staff or "Head (Self)"','er');return;}
+  const isSelf=staffUid.startsWith('SELF_');
+  const sm=isSelf?null:staffList.find(s=>s.uid===staffUid);
+  const resolvedStaffName=isSelf?head+' (Self)':( sm?.name||sm?.email||'');
+  const resolvedStaffUid=isSelf?staffUid:staffUid;
+  const billed=document.getElementById('fBilled').value;
+  const data={
+    name,
+    pan:document.getElementById('fPan').value.trim().toUpperCase(),
+    head,
+    staffUid:resolvedStaffUid,
+    staffName:resolvedStaffName,
+    isSelfHandled:isSelf,
+    group:document.getElementById('fGrp').value.trim(),
+    dueDate:document.getElementById('fDueDate').value||'',
+    status:document.getElementById('fStatus2').value,
+    dataReceivedDate:document.getElementById('fDataReceived').value||'',
+    dateOfFiling:document.getElementById('fDof').value||'',
+    balanceSheet:document.getElementById('fBS2').value,
+    eVerification:document.getElementById('fEVerify').value,
+    billed,
+    invoiceNumber:billed==='Yes'?document.getElementById('fInvoice').value.trim():'',
+    notes:document.getElementById('fNotes').value.trim(),
+    updatedAt:new Date().toISOString()
+  };
+  try{
+    if(editId){await window._fns.updateDoc(window._fns.doc(window._db,'ift_filings',editId),data);toast('Updated ✓');}
+    else{data.createdAt=new Date().toISOString();await window._fns.addDoc(window._fns.collection(window._db,'ift_filings'),data);toast('Filing added ✓');}
+    closeModal();
+  }catch(e){toast('Save failed: '+e.message,'er');}
+}
+
+// ═══════════════════════
+//  SORT / FILTER
+// ═══════════════════════
+function sortBy(f,th){
+  document.querySelectorAll('#vw-all th').forEach(t=>t.classList.remove('sa','sd'));
+  if(sortField===f)sortDir*=-1;else{sortField=f;sortDir=1;}
+  th.classList.add(sortDir===1?'sa':'sd');renderAll();
+}
+function sortCompBy(f,th){
+  document.querySelectorAll('#vw-completed th').forEach(t=>t.classList.remove('sa','sd'));
+  if(sortCompField===f)sortCompDir*=-1;else{sortCompField=f;sortCompDir=1;}
+  th.classList.add(sortCompDir===1?'sa':'sd');renderCompleted();
+}
+function resetFilters(){
+  ['allSrch','fHead','fStaff','fGroup','fStatus','fBS','fEV','fDueMonth'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderAll();
+}
+function switchView(v,btn){
+  document.querySelectorAll('.vp').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('vw-'+v).classList.add('active');btn.classList.add('active');
+  if(v==='all')renderAll();
+  if(v==='groupwise')renderGroupwise();
+  if(v==='staffwise')renderStaffwise();
+  if(v==='completed')renderCompleted();
+  if(v==='admin'){renderStaffTable();renderHeadChips();}
+}
+
+// ═══════════════════════
+//  EXPORT
+// ═══════════════════════
+function doExport(){
+  const h=['Assessee Name','Head','Staff','Group','Due Date','Status','Data Received Date','Date of Filing','Balance Sheet','E-Verification','Billed','Invoice Number','Notes'];
+  const rows=filings.map(f=>[f.name,f.head,f.staffName,f.group,f.dueDate,f.status,f.dataReceivedDate,f.dateOfFiling,f.balanceSheet,f.eVerification,f.billed,f.invoiceNumber,f.notes].map(v=>`"${(v||'').replace(/"/g,'""')}"`));
+  const csv=[h,...rows].map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`IndividualFiling_GandhiArunCo_${new Date().toISOString().split('T')[0]}.csv`;a.click();toast('Exported ✓');
+}
+
+// ═══════════════════════
+//  BULK CSV IMPORT
+// ═══════════════════════
+let parsedImportRows=[];
+
+function handleCsvFile(e){
+  const file=e.target.files[0];if(!file)return;
+  readCsvFile(file);
+}
+function handleCsvDrop(e){
+  e.preventDefault();document.getElementById('importArea').classList.remove('drag-over');
+  const file=e.dataTransfer.files[0];if(!file||!file.name.endsWith('.csv'))return toast('Please drop a .csv file','er');
+  readCsvFile(file);
+}
+function readCsvFile(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const text=ev.target.result;
+    const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+    if(lines.length<2){showMsg(document.getElementById('importMsg'),'CSV appears empty or has no data rows.','er');return;}
+    const headers=parseCSVLine(lines[0]).map(h=>h.toLowerCase().trim());
+    const nameIdx=headers.indexOf('name');
+    if(nameIdx===-1){showMsg(document.getElementById('importMsg'),'CSV must have a "name" column.','er');return;}
+    parsedImportRows=lines.slice(1).map(line=>{
+      const cols=parseCSVLine(line);
+      const row={};
+      headers.forEach((h,i)=>row[h]=cols[i]||'');
+      return row;
+    }).filter(r=>r.name);
+    const existing=new Set(filings.map(f=>(f.name||'').toLowerCase().trim()).filter(Boolean));
+    const newRows=parsedImportRows.filter(r=>!existing.has((r.name||'').toLowerCase().trim()));
+    const skipped=parsedImportRows.length-newRows.length;
+    document.getElementById('importStats').innerHTML=
+      `<strong>${parsedImportRows.length}</strong> rows found · <strong style="color:var(--green);">${newRows.length}</strong> new · <strong style="color:var(--orange);">${skipped}</strong> skipped (duplicate name)`;
+    pendingImportRows=newRows;
+    document.getElementById('importPreview').style.display='block';
+    document.getElementById('importMsg').style.display='none';
+  };
+  reader.readAsText(file);
+}
+function parseCSVLine(line){
+  const result=[];let cur='';let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+    else if(c===','&&!inQ){result.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  result.push(cur.trim());return result;
+}
+async function doImport(){
+  if(!pendingImportRows.length){toast('Nothing to import','er');return;}
+  const btn=document.getElementById('importBtn');
+  btn.disabled=true;btn.textContent='Importing…';
+  let ok=0;let fail=0;
+  for(const row of pendingImportRows){
+    try{
+      const staffMatch=staffList.find(s=>(s.name||'').toLowerCase()===(row.staffname||row.staff||'').toLowerCase());
+      await window._fns.addDoc(window._fns.collection(window._db,'ift_filings'),{
+        name:row.name||'',
+        pan:'',
+        head:row.head||'',
+        staffUid:staffMatch?.uid||'',
+        staffName:staffMatch?.name||row.staffname||row.staff||'',
+        isSelfHandled:false,
+        group:row.group||'',
+        dueDate:row.duedate||row['due date']||'',
+        status:row.status||'Not Received',
+        dataReceivedDate:row.datareceiveddate||row['data received date']||'',
+        dateOfFiling:row.dateoffiling||row['date of filing']||'',
+        balanceSheet:row.balancesheet||row['balance sheet']||'NA',
+        eVerification:row.everification||'Pending',
+        billed:row.billed||'No',
+        invoiceNumber:row.invoicenumber||'',
+        notes:row.notes||'',
+        createdAt:new Date().toISOString(),
+        updatedAt:new Date().toISOString()
+      });
+      ok++;
+    }catch(e){fail++;}
+  }
+  btn.disabled=false;btn.textContent='Import Now';
+  showMsg(document.getElementById('importMsg'),`Import complete: ${ok} added${fail?', '+fail+' failed':''}. ✓`,'ok');
+  document.getElementById('importPreview').style.display='none';
+  document.getElementById('csvFileInput').value='';
+  pendingImportRows=[];
+  toast(`${ok} filings imported ✓`);
+}
+function cancelImport(){
+  pendingImportRows=[];
+  document.getElementById('importPreview').style.display='none';
+  document.getElementById('csvFileInput').value='';
+  document.getElementById('importMsg').style.display='none';
+}
+
+// ═══════════════════════
+//  ADMIN — STAFF
+// ═══════════════════════
+async function addUserWithLogin(){
+  const name=document.getElementById('aName').value.trim();
+  const email=document.getElementById('aEmail').value.trim();
+  const uid=document.getElementById('aUid').value.trim();
+  const role=document.getElementById('aRole').value;
+  const msgEl=document.getElementById('addUserMsg');
+  if(!name||!email||!uid){showMsg(msgEl,'Name, email and UID are required.','er');return;}
+  try{
+    await window._fns.setDoc(window._fns.doc(window._db,'ift_users',uid),{name,email,role,createdAt:new Date().toISOString()});
+    showMsg(msgEl,'Staff added ✓','ok');
+    ['aName','aEmail','aUid'].forEach(id=>document.getElementById(id).value='');
+  }catch(e){showMsg(msgEl,'Failed: '+e.message,'er');}
+}
+async function addNameOnlyStaff(){
+  const name=document.getElementById('nName').value.trim();
+  const desig=document.getElementById('nDesig').value.trim();
+  const msgEl=document.getElementById('addNameMsg');
+  if(!name){showMsg(msgEl,'Name is required.','er');return;}
+  const uid='no_'+Date.now();
+  try{
+    await window._fns.setDoc(window._fns.doc(window._db,'ift_users',uid),{name,designation:desig,role:'staff',nameOnly:true,createdAt:new Date().toISOString()});
+    showMsg(msgEl,'Added ✓','ok');document.getElementById('nName').value='';document.getElementById('nDesig').value='';
+  }catch(e){showMsg(msgEl,'Failed: '+e.message,'er');}
+}
+async function removeStaff(uid){
+  if(!confirm('Remove this staff member?'))return;
+  try{await window._fns.deleteDoc(window._fns.doc(window._db,'ift_users',uid));toast('Removed');}
+  catch(e){toast('Failed','er');}
+}
+function renderStaffTable(){
+  const tb=document.getElementById('staffTb');if(!tb)return;
+  if(!staffList.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--ink3);">No staff yet.</td></tr>';return;}
+  tb.innerHTML=staffList.map(s=>{
+    const cnt=filings.filter(f=>f.staffUid===s.uid).length;
+    return `<tr><td>${esc(s.name||'')}</td><td style="color:var(--ink3);">${s.nameOnly?'<em>Name only</em>':esc(s.email||'')}</td>
+    <td><span class="role-b ${s.role==='admin'?'rb-admin':'rb-staff'}">${esc(s.role||'staff')}</span></td>
+    <td><strong>${cnt}</strong></td>
+    <td><button class="ib del" onclick="removeStaff('${s.uid}')" title="Remove">✕</button></td></tr>`;
+  }).join('');
+}
+
+// ═══════════════════════
+//  ADMIN — HEADS
+// ═══════════════════════
+async function addHead(){
+  const name=document.getElementById('headNew').value.trim();
+  const msgEl=document.getElementById('headMsg');
+  if(!name){showMsg(msgEl,'Head name is required.','er');return;}
+  if(headsList.some(h=>h.name.toLowerCase()===name.toLowerCase())){showMsg(msgEl,'Already exists.','er');return;}
+  try{
+    await window._fns.addDoc(window._fns.collection(window._db,'ift_heads'),{name,createdAt:new Date().toISOString()});
+    document.getElementById('headNew').value='';showMsg(msgEl,'Head added ✓','ok');
+  }catch(e){showMsg(msgEl,'Failed: '+e.message,'er');}
+}
+async function deleteHead(id){
+  if(!confirm('Remove this head?'))return;
+  try{await window._fns.deleteDoc(window._fns.doc(window._db,'ift_heads',id));toast('Removed');}
+  catch(e){toast('Failed','er');}
+}
+function renderHeadChips(){
+  const el=document.getElementById('headChips');if(!el)return;
+  el.innerHTML=headsList.map(h=>`<span class="chip">${esc(h.name)}<button class="chip-del" onclick="deleteHead('${h.id}')">✕</button></span>`).join('')
+    ||'<span style="color:var(--ink3);font-size:12px;">No heads added yet. Add one above.</span>';
+}
+
+// ═══════════════════════
+//  HELPERS
+// ═══════════════════════
+const fmtD=s=>s?new Date(s).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const show=id=>{const e=document.getElementById(id);if(e)e.style.display='flex';};
+const hide=id=>{const e=document.getElementById(id);if(e)e.style.display='none';};
+function toast(msg,type='ok'){
+  const t=document.getElementById('toast');t.textContent=msg;t.className=`toast t-${type}`;
+  t.style.display='block';t.style.animation='none';void t.offsetWidth;t.style.animation='tIn .3s ease';
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.style.display='none',2800);
+}
+function showMsg(el,msg,type){el.textContent=msg;el.style.display='block';el.style.color=type==='er'?'var(--red)':type==='ok'?'var(--green)':'var(--gold)';}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('loginScreen').style.display!=='none')doLogin();});
+</script>
+</body>
+</html>
