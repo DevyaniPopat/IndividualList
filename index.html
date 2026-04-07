@@ -355,7 +355,7 @@ td{padding:10px 11px;vertical-align:middle;}
       <button class="nav-tab" id="nt-all"        onclick="switchView('all',this)">≡ All Filings</button>
       <button class="nav-tab" id="nt-completed"  onclick="switchView('completed',this)">✓ Completed</button>
       <button class="nav-tab" id="nt-groupwise"  onclick="switchView('groupwise',this)">🗂 Group-wise</button>
-      <button class="nav-tab" id="nt-staffwise"  onclick="switchView('staffwise',this)">👤 Staff-wise</button>
+      <button class="nav-tab" id="nt-staffwise"  onclick="switchView('staffwise',this)">👤 Sub Head-wise</button>
       <button class="nav-tab" id="nt-admin"      onclick="switchView('admin',this)" style="display:none;">⚙ Admin</button>
     </div>
     <div class="hdr-right">
@@ -390,7 +390,7 @@ td{padding:10px 11px;vertical-align:middle;}
           <div id="dash-groups-em" class="empty" style="display:none;"><div class="empty-ic">🗂</div><div class="empty-tx">No groups yet.</div></div>
         </div>
         <div class="panel">
-          <div class="panel-hd"><div class="panel-title">👤 Staff Load</div></div>
+          <div class="panel-hd"><div class="panel-title">👤 Sub Head Load</div></div>
           <div id="dash-staff"></div>
           <div id="dash-staff-em" class="empty" style="display:none;"><div class="empty-ic">👤</div><div class="empty-tx">No staff yet.</div></div>
         </div>
@@ -400,8 +400,8 @@ td{padding:10px 11px;vertical-align:middle;}
         <div class="tbl-wrap" style="border:none;border-radius:0;box-shadow:none;overflow-x:auto;">
           <table>
             <thead><tr>
-              <th>Assessee Name</th><th>Head</th><th>Staff</th><th>Group</th>
-              <th>Status</th><th>Due Date</th><th>Data Received</th><th>Date of Filing</th>
+              <th>Assessee Name</th><th>Head</th><th>Sub Head</th><th>Group</th>
+              <th>Status</th><th>Data Received</th><th>Date of Filing</th>
               <th>Balance Sheet</th><th>E-Verify</th><th>Billed</th>
             </tr></thead>
             <tbody id="dash-recent"></tbody>
@@ -418,7 +418,7 @@ td{padding:10px 11px;vertical-align:middle;}
           <input class="srch-inp" id="allSrch" placeholder="Search by name, PAN, group…" oninput="renderAll()">
         </div>
         <select class="fsel" id="fHead"   onchange="renderAll()"><option value="">All Heads</option></select>
-        <select class="fsel" id="fStaff"  onchange="renderAll()"><option value="">All Staff</option></select>
+        <select class="fsel" id="fStaff"  onchange="renderAll()"><option value="">All Sub Heads</option></select>
         <select class="fsel" id="fGroup"  onchange="renderAll()"><option value="">All Groups</option></select>
         <select class="fsel" id="fStatus" onchange="renderAll()">
           <option value="">All Status</option>
@@ -432,23 +432,37 @@ td{padding:10px 11px;vertical-align:middle;}
           <option value="">All E-Verify</option>
           <option>Pending</option><option>E-Verified</option>
         </select>
-        <select class="fsel" id="fDueMonth" onchange="renderAll()">
-          <option value="">All Due Dates</option>
-          <option value="07">July</option>
-          <option value="08">August</option>
-          <option value="10">October</option>
-        </select>
         <button class="btn btn-outline" onclick="resetFilters()">✕ Reset</button>
+        <button class="btn" id="bulkToggleBtn" onclick="toggleBulkMode()" style="background:var(--red-lt);color:var(--red);border:1.5px solid #fca5a5;">☑ Select</button>
+        <button class="btn" onclick="openBulkUpdate()" style="background:var(--primary-lt);color:var(--primary);border:1.5px solid #93c5fd;">✎ Bulk Update</button>
+      </div>
+      <!-- Filtered count strip -->
+      <div id="filteredStrip" style="display:none;align-items:center;gap:14px;background:var(--primary-lt);border:1px solid #93c5fd;border-radius:8px;padding:7px 13px;margin-bottom:8px;font-size:12px;color:var(--primary-dk);">
+        <span>🔍 Showing <strong id="filteredCount">0</strong> filtered results</span>
+        <span style="color:var(--ink3);">|</span>
+        <span>Not Received: <strong id="fc-ns">0</strong></span>
+        <span>WIP: <strong id="fc-wip">0</strong></span>
+        <span>Under Review: <strong id="fc-ur">0</strong></span>
+        <span>Completed: <strong id="fc-done">0</strong></span>
+        <button onclick="resetFilters()" style="margin-left:auto;font-size:10px;background:none;border:none;color:var(--primary);cursor:pointer;font-weight:600;">✕ Clear filters</button>
+      </div>
+      <!-- Bulk action bar — shown when items selected -->
+      <div id="bulkBar" style="display:none;align-items:center;gap:10px;background:var(--red-lt);border:1.5px solid #fca5a5;border-radius:9px;padding:9px 14px;margin-bottom:10px;">
+        <span id="bulkCount" style="font-size:13px;font-weight:600;color:var(--red);">0 selected</span>
+        <button class="btn" onclick="selectAllVisible()" style="background:#fff;color:var(--red);border:1px solid #fca5a5;font-size:11px;">Select All Visible</button>
+        <button class="btn" onclick="clearSelection()" style="background:#fff;color:var(--ink3);border:1px solid var(--border);font-size:11px;">Clear</button>
+        <button class="btn" onclick="openBulkUpdate()" style="background:var(--primary);color:#fff;font-size:12px;font-weight:700;margin-left:auto;">✎ Update Selected</button>
+        <button class="btn" onclick="bulkDelete()" style="background:var(--red);color:#fff;font-size:12px;font-weight:700;">🗑 Delete Selected</button>
       </div>
       <div class="tbl-wrap" style="overflow-x:auto;">
         <table>
           <thead><tr>
+            <th id="chkAllTh" style="display:none;width:32px;"><input type="checkbox" id="chkAll" onchange="toggleSelectAll(this)" style="cursor:pointer;"></th>
             <th onclick="sortBy('name',this)">Assessee Name</th>
             <th onclick="sortBy('head',this)">Head</th>
-            <th onclick="sortBy('staffName',this)">Staff</th>
+            <th onclick="sortBy('staffName',this)">Sub Head</th>
             <th onclick="sortBy('group',this)">Group</th>
             <th onclick="sortBy('status',this)">Status</th>
-            <th onclick="sortBy('dueDate',this)">Due Date</th>
             <th onclick="sortBy('dataReceivedDate',this)">Data Received</th>
             <th onclick="sortBy('dateOfFiling',this)">Date of Filing</th>
             <th onclick="sortBy('balanceSheet',this)">Balance Sheet</th>
@@ -510,7 +524,7 @@ td{padding:10px 11px;vertical-align:middle;}
           <thead><tr>
             <th onclick="sortCompBy('name',this)">Assessee Name</th>
             <th onclick="sortCompBy('head',this)">Head</th>
-            <th onclick="sortCompBy('staffName',this)">Staff</th>
+            <th onclick="sortCompBy('staffName',this)">Sub Head</th>
             <th onclick="sortCompBy('group',this)">Group</th>
             <th onclick="sortCompBy('dataReceivedDate',this)">Data Received</th>
             <th onclick="sortCompBy('dateOfFiling',this)">Date of Filing</th>
@@ -539,11 +553,19 @@ td{padding:10px 11px;vertical-align:middle;}
 
     <!-- ══ STAFF-WISE ══ -->
     <div class="vp" id="vw-staffwise">
+      <div id="staffPendingSummary" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px;"></div>
       <div class="toolbar">
         <div class="srch-w">
           <svg class="srch-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input class="srch-inp" id="swSrch" placeholder="Search within staff…" oninput="renderStaffwise()">
         </div>
+        <select class="fsel" id="swStaffFilter" onchange="renderStaffwise()" style="min-width:140px;"><option value="">All Sub Heads</option></select>
+        <select class="fsel" id="swHeadFilter" onchange="renderStaffwise()" style="min-width:140px;"><option value="">All Heads</option></select>
+        <select class="fsel" id="swStatusFilter" onchange="renderStaffwise()">
+          <option value="">All Status</option>
+          <option>Not Received</option><option>WIP</option><option>Under Review</option><option>Completed</option>
+        </select>
+        <button class="btn btn-outline" onclick="document.getElementById('swSrch').value='';document.getElementById('swStaffFilter').value='';document.getElementById('swHeadFilter').value='';document.getElementById('swStatusFilter').value='';renderStaffwise();">✕ Reset</button>
       </div>
       <div id="staffwiseContainer"></div>
     </div>
@@ -593,9 +615,16 @@ td{padding:10px 11px;vertical-align:middle;}
         <div class="usr-card-hd">📥 Bulk Import Clients (CSV)</div>
         <div class="usr-card-bd">
           <p style="font-size:12px;color:var(--ink2);margin-bottom:10px;">
-            Upload a CSV with columns: <strong>name, head, staffName, group, dueDate</strong> (other fields optional).<br>
-            New records will be added. Duplicate names in the same season may be imported — verify before importing.
+            Upload a CSV file. The <strong>first row must be column headers</strong>. Only <strong>name</strong> is required — all other columns are optional.
           </p>
+          <div style="margin-bottom:10px;padding:9px 13px;background:var(--primary-lt);border:1px solid #93c5fd;border-radius:8px;font-size:11px;color:var(--primary-dk);">
+            <strong>📋 Accepted column names (case-insensitive):</strong><br>
+            <code>name</code> · <code>head</code> · <code>group</code> · <code>status</code> · <code>notes</code><br>
+            <span style="color:var(--ink3);margin-top:3px;display:block;">Columns can be in any order. Extra columns are ignored.</span>
+          </div>
+          <div style="margin-bottom:10px;">
+            <button class="btn btn-outline" onclick="downloadSampleCsv()" style="font-size:11px;">⬇ Download Sample CSV</button>
+          </div>
           <div class="import-area" id="importArea" onclick="document.getElementById('csvFileInput').click()"
             ondragover="event.preventDefault();this.classList.add('drag-over')"
             ondragleave="this.classList.remove('drag-over')"
@@ -607,7 +636,14 @@ td{padding:10px 11px;vertical-align:middle;}
           <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleCsvFile(event)">
           <div id="importPreview" style="margin-top:12px;display:none;">
             <div id="importStats" style="font-size:12px;color:var(--ink2);margin-bottom:8px;"></div>
-            <button class="btn-sv" id="importBtn" onclick="doImport()" style="margin-right:8px;">Import Now</button>
+            <!-- Preview table -->
+            <div style="overflow-x:auto;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;">
+              <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                <thead id="importPreviewHead" style="position:sticky;top:0;background:var(--primary-dk);color:#fff;"></thead>
+                <tbody id="importPreviewBody"></tbody>
+              </table>
+            </div>
+            <button class="btn-sv" id="importBtn" onclick="doImport()" style="margin-right:8px;">✓ Import Now</button>
             <button class="btn-cn" onclick="cancelImport()">Cancel</button>
           </div>
           <div id="importMsg" style="margin-top:8px;font-size:12px;display:none;"></div>
@@ -640,12 +676,11 @@ td{padding:10px 11px;vertical-align:middle;}
       <div class="f-grp-m f-full"><label class="f-lbl-m">Assessee Name *</label><input class="f-inp-m" id="fName" placeholder="e.g. Ramesh Kumar Sharma"></div>
       <div class="f-grp-m" style="display:none;"><label class="f-lbl-m">PAN</label><input class="f-inp-m" id="fPan" placeholder="e.g. ABCDE1234F" style="text-transform:uppercase;"></div>
       <div class="f-grp-m"><label class="f-lbl-m">Head *</label><select class="f-sel-m" id="fHead2" onchange="onHeadChange()"><option value="">— Select Head —</option></select></div>
-      <div class="f-grp-m"><label class="f-lbl-m">Staff *</label>
+      <div class="f-grp-m"><label class="f-lbl-m">Sub Head <span style="font-weight:400;text-transform:none;color:var(--ink3);font-size:9px;">(optional)</span></label>
         <select class="f-sel-m" id="fStaff2"><option value="">— Select Staff —</option></select>
-        <div id="staffSelfNote" style="display:none;margin-top:4px;font-size:10px;color:var(--gold);font-weight:600;">⚑ Head handling this filing directly</div>
+        <div id="staffSelfNote" style="display:none;margin-top:4px;font-size:10px;color:var(--gold);font-weight:600;">⚑ Head handling this filing directly (no sub head)</div>
       </div>
       <div class="f-grp-m"><label class="f-lbl-m">Group</label><input class="f-inp-m" id="fGrp" placeholder="e.g. Sharma Family, ABC Group"></div>
-      <div class="f-grp-m"><label class="f-lbl-m">Due Date</label><input type="date" class="f-inp-m" id="fDueDate" title="ITR due date for this client (July / Aug / Oct)"></div>
       <div class="f-grp-m"><label class="f-lbl-m">Status *</label>
         <select class="f-sel-m" id="fStatus2" onchange="onStatusChange()">
           <option>Not Received</option>
@@ -694,6 +729,68 @@ td{padding:10px 11px;vertical-align:middle;}
 
 <div class="toast" id="toast"></div>
 
+<!-- ══ BULK UPDATE MODAL ══ -->
+<div class="overlay" id="bulkUpdateOverlay" onclick="if(event.target===this)closeBulkUpdate()">
+  <div class="modal" style="width:520px;">
+    <div class="m-hd"><span>✎ Bulk Update <span id="buCount" style="font-size:14px;color:var(--ink3);font-weight:400;"></span></span><button class="m-cl" onclick="closeBulkUpdate()">✕</button></div>
+    <p style="font-size:12px;color:var(--ink2);margin-bottom:16px;">Choose which field(s) to update on all selected clients. Leave a field blank / unchanged to skip it.</p>
+    <div class="form-grid">
+      <!-- Head -->
+      <div class="f-grp-m">
+        <label class="f-lbl-m">Head</label>
+        <select class="f-sel-m" id="bu-head"><option value="">— No change —</option></select>
+      </div>
+      <!-- Sub Head -->
+      <div class="f-grp-m">
+        <label class="f-lbl-m">Sub Head <span style="font-weight:400;text-transform:none;color:var(--ink3);font-size:9px;">(optional)</span></label>
+        <select class="f-sel-m" id="bu-staff"><option value="">— No change —</option></select>
+      </div>
+      <!-- Status -->
+      <div class="f-grp-m">
+        <label class="f-lbl-m">Status</label>
+        <select class="f-sel-m" id="bu-status">
+          <option value="">— No change —</option>
+          <option>Not Received</option><option>WIP</option><option>Under Review</option><option>Completed</option>
+        </select>
+      </div>
+      <!-- Balance Sheet -->
+      <div class="f-grp-m">
+        <label class="f-lbl-m">Balance Sheet</label>
+        <select class="f-sel-m" id="bu-bs">
+          <option value="">— No change —</option>
+          <option>NA</option><option>Pending</option><option>Done</option>
+        </select>
+      </div>
+      <!-- Group -->
+      <div class="f-grp-m">
+        <label class="f-lbl-m">Group</label>
+        <input class="f-inp-m" id="bu-group" placeholder="Leave blank = no change">
+      </div>
+      <!-- E-Verify -->
+      <div class="f-grp-m">
+        <label class="f-lbl-m">E-Verification</label>
+        <select class="f-sel-m" id="bu-ev">
+          <option value="">— No change —</option>
+          <option>Pending</option><option>E-Verified</option>
+        </select>
+      </div>
+      <!-- Billed -->
+      <div class="f-grp-m">
+        <label class="f-lbl-m">Billed?</label>
+        <select class="f-sel-m" id="bu-billed">
+          <option value="">— No change —</option>
+          <option value="Yes">Yes</option><option value="No">No</option>
+        </select>
+      </div>
+    </div>
+    <div id="buProgress" style="display:none;margin-top:14px;padding:9px 13px;background:var(--bg2);border-radius:8px;font-size:12px;color:var(--ink2);"></div>
+    <div class="m-ft">
+      <button class="btn-cn" onclick="closeBulkUpdate()">Cancel</button>
+      <button class="btn-sv" id="buSaveBtn" onclick="doBulkUpdate()">Apply to <span id="buSaveCnt">0</span> Clients</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════
 //  STATE
@@ -705,6 +802,8 @@ let editId=null,sortField='name',sortDir=1;
 let sortCompField='name',sortCompDir=1;
 let pendingImportRows=[];
 let staffChart=null,headChart=null;
+let selectedIds=new Set();
+let bulkMode=false;
 const ADMIN_EMAILS=['gandhiarun2012@gmail.com']; // ← update as needed
 
 // ═══════════════════════
@@ -805,7 +904,7 @@ function populateDropdowns(){
   ['fStaff'].forEach(sid=>{
     const el=document.getElementById(sid);if(!el)return;
     const prev=el.value;
-    el.innerHTML='<option value="">All Staff</option>';
+    el.innerHTML='<option value="">All Sub Heads</option>';
     staffList.forEach(s=>{const o=document.createElement('option');o.value=s.uid;o.textContent=s.name||s.email;el.appendChild(o);});
     if(prev)el.value=prev;
   });
@@ -870,14 +969,14 @@ function renderDashboard(){
     return `<div class="cat-row"><div class="cat-nm">${esc(g)}</div><div class="cat-bw"><div class="cat-bf" style="width:${pct}%;background:var(--primary);"></div></div><div class="cat-cnt" style="color:var(--primary);">${t}</div></div>`;
   }).join('');
 
-  const stMap={};
-  filings.forEach(f=>{const s=f.staffName||'Unassigned';if(!stMap[s])stMap[s]={t:0,d:0};stMap[s].t++;if(f.status==='Completed')stMap[s].d++;});
-  const stKeys=Object.keys(stMap).sort();
+  const stMapRaw2={};
+  filings.forEach(f=>{const raw=f.staffName||f.head||'Unassigned';const key=raw.trim().toLowerCase();if(!stMapRaw2[key])stMapRaw2[key]={display:raw.trim(),t:0,d:0};stMapRaw2[key].t++;if(f.status==='Completed')stMapRaw2[key].d++;});
+  const stKeys=Object.keys(stMapRaw2).sort();
   const dsEl=document.getElementById('dash-staff');
   document.getElementById('dash-staff-em').style.display=stKeys.length?'none':'block';
-  dsEl.innerHTML=stKeys.map(s=>{
-    const{t,d}=stMap[s];const pct=t?Math.round(d/t*100):0;
-    return `<div class="cat-row"><div class="cat-nm">${esc(s)}</div><div class="cat-bw"><div class="cat-bf" style="width:${pct}%;background:#3b82f6;"></div></div><div class="cat-cnt" style="color:#3b82f6;">${t}</div></div>`;
+  dsEl.innerHTML=stKeys.map(k=>{
+    const{display,t,d}=stMapRaw2[k];const pct=t?Math.round(d/t*100):0;
+    return `<div class="cat-row"><div class="cat-nm">${esc(display)}</div><div class="cat-bw"><div class="cat-bf" style="width:${pct}%;background:#3b82f6;"></div></div><div class="cat-cnt" style="color:#3b82f6;">${t}</div></div>`;
   }).join('');
 
   const recent=[...filings].sort((a,b)=>(b.createdAt||'')>(a.createdAt||'')?1:-1).slice(0,10);
@@ -897,7 +996,6 @@ function renderAll(){
   const fStat=(document.getElementById('fStatus').value||'');
   const fBS=(document.getElementById('fBS').value||'');
   const fEV=(document.getElementById('fEV').value||'');
-  const fDueMonth=(document.getElementById('fDueMonth')?.value||'');
 
   let data=[...filings].filter(f=>{
     if(srch&&!((f.name||'').toLowerCase().includes(srch)||(f.group||'').toLowerCase().includes(srch)||(f.staffName||'').toLowerCase().includes(srch)))return false;
@@ -907,11 +1005,23 @@ function renderAll(){
     if(fStat&&f.status!==fStat)return false;
     if(fBS&&f.balanceSheet!==fBS)return false;
     if(fEV&&(f.eVerification||'Pending')!==fEV)return false;
-    if(fDueMonth&&f.dueDate){const m=(f.dueDate||'').split('-')[1];if(m!==fDueMonth)return false;}
-    else if(fDueMonth&&!f.dueDate)return false;
     return true;
   });
   data.sort((a,b)=>{const av=(a[sortField]||'').toString().toLowerCase();const bv=(b[sortField]||'').toString().toLowerCase();return av<bv?-sortDir:av>bv?sortDir:0;});
+
+  // Filtered count strip
+  const isFiltered=srch||fH||fSt||fGr||fStat||fBS||fEV;
+  const strip=document.getElementById('filteredStrip');
+  if(strip){
+    if(isFiltered){
+      strip.style.display='flex';
+      document.getElementById('filteredCount').textContent=data.length;
+      document.getElementById('fc-ns').textContent=data.filter(f=>f.status==='Not Received').length;
+      document.getElementById('fc-wip').textContent=data.filter(f=>f.status==='WIP').length;
+      document.getElementById('fc-ur').textContent=data.filter(f=>f.status==='Under Review').length;
+      document.getElementById('fc-done').textContent=data.filter(f=>f.status==='Completed').length;
+    }else{strip.style.display='none';}
+  }
 
   const tbody=document.getElementById('allTbody');
   const em=document.getElementById('allEm');
@@ -1012,7 +1122,7 @@ function renderGroupwise(){
     html+=`<div class="group-section">
       <div class="group-section-hd">${esc(g)}<span class="cnt-badge">${rows.length}</span><span style="font-size:11px;color:var(--ink3);font-family:'Outfit',sans-serif;font-weight:400;">${done}/${rows.length} completed</span></div>
       <div class="tbl-wrap" style="border-top-left-radius:0;border-top-right-radius:0;border-top:none;overflow-x:auto;">
-        <table><thead><tr><th>Assessee Name</th><th>Head</th><th>Staff</th><th>Status</th><th>Due Date</th><th>Data Received</th><th>Date of Filing</th><th>E-Verify</th><th>Billed</th><th>Actions</th></tr></thead>
+        <table><thead><tr><th>Assessee Name</th><th>Head</th><th>Sub Head</th><th>Status</th><th>Data Received</th><th>Date of Filing</th><th>E-Verify</th><th>Billed</th><th>Actions</th></tr></thead>
         <tbody>${rows.map(f=>rowHtml(f,true)).join('')}</tbody></table>
       </div></div>`;
   });
@@ -1024,23 +1134,97 @@ function renderGroupwise(){
 // ═══════════════════════
 function renderStaffwise(){
   const srch=(document.getElementById('swSrch').value||'').toLowerCase();
-  const stMap={};
-  filings.forEach(f=>{const s=f.staffName||'Unassigned';if(!stMap[s])stMap[s]=[];stMap[s].push(f);});
+  const filterStaff=(document.getElementById('swStaffFilter')?.value||'').toLowerCase();
+  const filterHead=(document.getElementById('swHeadFilter')?.value||'');
+  const filterStatus=(document.getElementById('swStatusFilter')?.value||'');
+
+  // Case-insensitive grouping: normalise key = trimmed lowercase, display = first-seen casing
+  const stMapRaw={};  // key: normalised → {display, rows[]}
+  filings.forEach(f=>{
+    const raw=f.staffName||f.head||'Unassigned';
+    const key=raw.trim().toLowerCase();
+    if(!stMapRaw[key])stMapRaw[key]={display:raw.trim(),rows:[]};
+    stMapRaw[key].rows.push(f);
+  });
+
+  // Populate staff filter dropdown (once, preserving selection)
+  const swSF=document.getElementById('swStaffFilter');
+  if(swSF){
+    const prev=swSF.value;
+    swSF.innerHTML='<option value="">All Staff</option>';
+    Object.values(stMapRaw).sort((a,b)=>a.display.localeCompare(b.display)).forEach(({display})=>{
+      const o=document.createElement('option');o.value=display.toLowerCase();o.textContent=display;swSF.appendChild(o);
+    });
+    if(prev)swSF.value=prev;
+  }
+
+  // Populate head filter dropdown
+  const swHF=document.getElementById('swHeadFilter');
+  if(swHF){
+    const prev=swHF.value;
+    swHF.innerHTML='<option value="">All Heads</option>';
+    headsList.forEach(h=>{const o=document.createElement('option');o.value=h.name;o.textContent=h.name;swHF.appendChild(o);});
+    if(prev)swHF.value=prev;
+  }
+
+  // Render pending summary cards (always show all, unfiltered)
+  const summaryEl=document.getElementById('staffPendingSummary');
+  if(summaryEl){
+    const allStaff=Object.values(stMapRaw).sort((a,b)=>a.display.localeCompare(b.display));
+    summaryEl.innerHTML=allStaff.map(({display,rows})=>{
+      const total=rows.length;
+      const done=rows.filter(r=>r.status==='Completed').length;
+      const pending=total-done;
+      const pct=total?Math.round(done/total*100):0;
+      const isActive=filterStaff===display.toLowerCase();
+      return `<div onclick="filterByStaffCard('${display.toLowerCase().replace(/'/g,"\\'")}') " style="background:var(--surface);border:${isActive?'2px solid var(--primary)':'1px solid var(--border)'};border-radius:10px;padding:12px 15px;cursor:pointer;transition:all .2s;${isActive?'box-shadow:0 0 0 3px var(--primary-lt);':''}">
+        <div style="font-size:11px;font-weight:700;color:${isActive?'var(--primary)':'var(--ink2)'};margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(display)}</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <span style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;color:var(--orange);">${pending}</span>
+          <span style="font-size:10px;color:var(--ink3);">pending</span>
+          <span style="font-size:10px;color:var(--green);font-weight:600;margin-left:auto;">${done} done</span>
+        </div>
+        <div style="height:3px;background:var(--bg2);border-radius:2px;margin-top:7px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:var(--green);border-radius:2px;transition:width .5s;"></div>
+        </div>
+        <div style="font-size:9px;color:var(--ink3);margin-top:3px;">${pct}% complete · ${total} total</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Build filtered sections
   const container=document.getElementById('staffwiseContainer');
   let html='';
-  Object.keys(stMap).sort().forEach(s=>{
-    let rows=stMap[s];
-    if(srch)rows=rows.filter(f=>(f.name||'').toLowerCase().includes(srch)||(f.group||'').toLowerCase().includes(srch));
+  Object.values(stMapRaw).sort((a,b)=>a.display.localeCompare(b.display)).forEach(({display,rows})=>{
+    // Staff filter (card click or dropdown)
+    if(filterStaff&&display.toLowerCase()!==filterStaff)return;
+    // Head filter
+    if(filterHead)rows=rows.filter(f=>(f.head||'')===filterHead);
+    // Status filter
+    if(filterStatus)rows=rows.filter(f=>f.status===filterStatus);
+    // Search
+    if(srch)rows=rows.filter(f=>(f.name||'').toLowerCase().includes(srch)||(f.group||'').toLowerCase().includes(srch)||(f.head||'').toLowerCase().includes(srch));
     if(!rows.length)return;
     const done=rows.filter(r=>r.status==='Completed').length;
+    const pending=rows.filter(r=>r.status!=='Completed').length;
     html+=`<div class="group-section">
-      <div class="group-section-hd">${esc(s)}<span class="cnt-badge">${rows.length}</span><span style="font-size:11px;color:var(--ink3);font-family:'Outfit',sans-serif;font-weight:400;">${done}/${rows.length} completed</span></div>
+      <div class="group-section-hd">${esc(display)}<span class="cnt-badge">${rows.length}</span><span style="font-size:11px;color:var(--ink3);font-family:'Outfit',sans-serif;font-weight:400;">${done}/${rows.length} completed</span><span style="font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;background:var(--orange-lt);color:var(--orange);border:1px solid #fed7aa;border-radius:20px;padding:2px 9px;margin-left:4px;">${pending} pending</span></div>
       <div class="tbl-wrap" style="border-top-left-radius:0;border-top-right-radius:0;border-top:none;overflow-x:auto;">
-        <table><thead><tr><th>Assessee Name</th><th>Head</th><th>Group</th><th>Status</th><th>Due Date</th><th>Data Received</th><th>Date of Filing</th><th>E-Verify</th><th>Billed</th><th>Actions</th></tr></thead>
+        <table><thead><tr><th>Assessee Name</th><th>Head</th><th>Group</th><th>Status</th><th>Data Received</th><th>Date of Filing</th><th>E-Verify</th><th>Billed</th><th>Actions</th></tr></thead>
         <tbody>${rows.map(f=>rowHtml(f,true)).join('')}</tbody></table>
       </div></div>`;
   });
-  container.innerHTML=html||'<div class="empty"><div class="empty-ic">👤</div><div class="empty-tx">No staff data found.</div></div>';
+  container.innerHTML=html||'<div class="empty"><div class="empty-ic">👤</div><div class="empty-tx">No results found.</div></div>';
+}
+
+function filterByStaffCard(staffNameLower){
+  const el=document.getElementById('swStaffFilter');
+  if(!el)return;
+  // Toggle: clicking active card clears filter
+  if(el.value===staffNameLower){el.value='';}else{el.value=staffNameLower;}
+  renderStaffwise();
+  // Scroll to the sections
+  document.getElementById('staffwiseContainer').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 // ═══════════════════════
@@ -1063,13 +1247,15 @@ function rowHtml(f,showAct=false){
     <button class="ib" onclick="event.stopPropagation();editFiling('${f.id}')" title="Edit">✎</button>
     <button class="ib del" onclick="event.stopPropagation();delFiling('${f.id}')" title="Delete">✕</button>
   </div></td>`:'';
-  return `<tr onclick="editFiling('${f.id}')">
+  const chk=bulkMode?`<td style="width:32px;" onclick="event.stopPropagation();"><input type="checkbox" class="row-chk" data-id="${f.id}" ${selectedIds.has(f.id)?'checked':''} onchange="toggleRowSelect(this)" style="cursor:pointer;"></td>`:'';
+  const rowStyle=selectedIds.has(f.id)?'background:#fff1f2;':'';
+  return `<tr onclick="${bulkMode?`toggleRowSelectById('${f.id}')`:`editFiling('${f.id}')`}" style="${rowStyle}">
+    ${chk}
     <td><div class="cl-n">${esc(f.name)}</div></td>
     <td style="font-size:12px;color:var(--ink2);">${esc(f.head||'—')}</td>
     <td style="font-size:12px;">${staffDisplay}</td>
     <td>${f.group?`<span class="grp-badge">${esc(f.group)}</span>`:'<span style="color:var(--ink3);font-size:12px;">—</span>'}</td>
     <td><span class="ss ${scls}">${esc(f.status||'Not Received')}</span></td>
-    <td style="font-size:12px;color:var(--ink2);">${f.dueDate?fmtD(f.dueDate):'—'}</td>
     <td style="font-size:12px;color:var(--ink2);">${drd}</td>
     <td>${dof}</td>
     <td><span class="bs ${bcls}">${esc(f.balanceSheet||'NA')}</span></td>
@@ -1216,7 +1402,6 @@ function openModal(item=null){
   document.getElementById('fName').value=item?.name||'';
   document.getElementById('fPan').value=item?.pan||'';
   document.getElementById('fGrp').value=item?.group||'';
-  document.getElementById('fDueDate').value=item?.dueDate||'';
   document.getElementById('fDataReceived').value=item?.dataReceivedDate||'';
   document.getElementById('fDof').value=item?.dateOfFiling||'';
   document.getElementById('fStatus2').value=item?.status||'Not Received';
@@ -1254,11 +1439,10 @@ async function saveFiling(){
   const staffUid=document.getElementById('fStaff2').value;
   if(!name){toast('Assessee name is required','er');return;}
   if(!head){toast('Please select a Head','er');return;}
-  if(!staffUid){toast('Please select Staff or "Head (Self)"','er');return;}
   const isSelf=staffUid.startsWith('SELF_');
   const sm=isSelf?null:staffList.find(s=>s.uid===staffUid);
-  const resolvedStaffName=isSelf?head+' (Self)':( sm?.name||sm?.email||'');
-  const resolvedStaffUid=isSelf?staffUid:staffUid;
+  const resolvedStaffName=isSelf?head+' (Self)':(sm?.name||sm?.email||head||'');
+  const resolvedStaffUid=staffUid||'';
   const billed=document.getElementById('fBilled').value;
   const data={
     name,
@@ -1268,7 +1452,6 @@ async function saveFiling(){
     staffName:resolvedStaffName,
     isSelfHandled:isSelf,
     group:document.getElementById('fGrp').value.trim(),
-    dueDate:document.getElementById('fDueDate').value||'',
     status:document.getElementById('fStatus2').value,
     dataReceivedDate:document.getElementById('fDataReceived').value||'',
     dateOfFiling:document.getElementById('fDof').value||'',
@@ -1287,6 +1470,175 @@ async function saveFiling(){
 }
 
 // ═══════════════════════
+//  BULK UPDATE
+// ═══════════════════════
+function openBulkUpdate(){
+  if(!selectedIds.size){
+    // If nothing selected, use all currently visible
+    if(!bulkMode){
+      // Turn on bulk mode first, then select all visible
+      toggleBulkMode();
+      selectAllVisible();
+      if(!selectedIds.size){toast('No filings visible to update','er');return;}
+    }else{
+      toast('Select clients first using the checkboxes','er');return;
+    }
+  }
+  // Populate head dropdown
+  const buHead=document.getElementById('bu-head');
+  buHead.innerHTML='<option value="">— No change —</option>';
+  headsList.forEach(h=>{const o=document.createElement('option');o.value=h.name;o.textContent=h.name;buHead.appendChild(o);});
+  // Populate staff dropdown
+  const buStaff=document.getElementById('bu-staff');
+  buStaff.innerHTML='<option value="">— No change —</option><option value="__CLEAR__">Clear staff (unassign)</option>';
+  staffList.forEach(s=>{const o=document.createElement('option');o.value=s.uid;o.textContent=s.name||s.email;buStaff.appendChild(o);});
+  // Reset fields
+  ['bu-status','bu-bs','bu-ev','bu-billed'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('bu-group').value='';
+  document.getElementById('buProgress').style.display='none';
+  document.getElementById('buCount').textContent=`(${selectedIds.size} clients)`;
+  document.getElementById('buSaveCnt').textContent=selectedIds.size;
+  document.getElementById('bulkUpdateOverlay').classList.add('open');
+}
+function closeBulkUpdate(){
+  document.getElementById('bulkUpdateOverlay').classList.remove('open');
+}
+async function doBulkUpdate(){
+  const updates={};
+  const buHead=document.getElementById('bu-head').value;
+  const buStaff=document.getElementById('bu-staff').value;
+  const buStatus=document.getElementById('bu-status').value;
+  const buBS=document.getElementById('bu-bs').value;
+  const buGroup=document.getElementById('bu-group').value.trim();
+  const buEV=document.getElementById('bu-ev').value;
+  const buBilled=document.getElementById('bu-billed').value;
+
+  if(buHead)updates.head=buHead;
+  if(buStaff==='__CLEAR__'){updates.staffUid='';updates.staffName='';}
+  else if(buStaff){
+    const sm=staffList.find(s=>s.uid===buStaff);
+    updates.staffUid=buStaff;
+    updates.staffName=sm?.name||sm?.email||'';
+    updates.isSelfHandled=false;
+  }
+  if(buStatus)updates.status=buStatus;
+  if(buBS)updates.balanceSheet=buBS;
+  if(buGroup)updates.group=buGroup;
+  if(buEV)updates.eVerification=buEV;
+  if(buBilled)updates.billed=buBilled;
+
+  if(!Object.keys(updates).length){toast('No changes selected','er');return;}
+
+  updates.updatedAt=new Date().toISOString();
+  const ids=[...selectedIds];
+  const prog=document.getElementById('buProgress');
+  prog.style.display='block';
+  const btn=document.getElementById('buSaveBtn');
+  btn.disabled=true;
+
+  let ok=0,fail=0;
+  for(const id of ids){
+    try{
+      await window._fns.updateDoc(window._fns.doc(window._db,'ift_filings',id),updates);
+      ok++;
+      prog.textContent=`Updating… ${ok}/${ids.length}`;
+    }catch(e){fail++;}
+  }
+  btn.disabled=false;
+  prog.textContent=`Done! ${ok} updated${fail?', '+fail+' failed':''}.`;
+  setTimeout(()=>{
+    closeBulkUpdate();
+    selectedIds.clear();
+    if(bulkMode)toggleBulkMode();else renderAll();
+    toast(`${ok} client(s) updated ✓`);
+  },800);
+}
+
+// ═══════════════════════
+//  BULK DELETE
+// ═══════════════════════
+function toggleBulkMode(){
+  bulkMode=!bulkMode;
+  selectedIds.clear();
+  const btn=document.getElementById('bulkToggleBtn');
+  const bar=document.getElementById('bulkBar');
+  const chkTh=document.getElementById('chkAllTh');
+  if(bulkMode){
+    btn.textContent='✕ Cancel';
+    btn.style.background='var(--red)';
+    btn.style.color='#fff';
+    btn.style.borderColor='var(--red)';
+    bar.style.display='flex';
+    if(chkTh)chkTh.style.display='';
+  }else{
+    btn.textContent='☑ Select';
+    btn.style.background='var(--red-lt)';
+    btn.style.color='var(--red)';
+    btn.style.borderColor='#fca5a5';
+    bar.style.display='none';
+    if(chkTh)chkTh.style.display='none';
+  }
+  updateBulkCount();
+  renderAll();
+}
+function toggleRowSelect(chk){
+  const id=chk.dataset.id;
+  if(chk.checked)selectedIds.add(id);else selectedIds.delete(id);
+  updateBulkCount();
+  // update row highlight
+  const row=chk.closest('tr');
+  if(row)row.style.background=chk.checked?'#fff1f2':'';
+}
+function toggleRowSelectById(id){
+  if(selectedIds.has(id)){selectedIds.delete(id);}else{selectedIds.add(id);}
+  updateBulkCount();
+  renderAll();
+}
+function toggleSelectAll(chk){
+  const boxes=document.querySelectorAll('.row-chk');
+  boxes.forEach(b=>{
+    b.checked=chk.checked;
+    if(chk.checked)selectedIds.add(b.dataset.id);else selectedIds.delete(b.dataset.id);
+    const row=b.closest('tr');
+    if(row)row.style.background=chk.checked?'#fff1f2':'';
+  });
+  updateBulkCount();
+}
+function selectAllVisible(){
+  const boxes=document.querySelectorAll('.row-chk');
+  boxes.forEach(b=>{b.checked=true;selectedIds.add(b.dataset.id);const row=b.closest('tr');if(row)row.style.background='#fff1f2';});
+  const chkAll=document.getElementById('chkAll');if(chkAll)chkAll.checked=true;
+  updateBulkCount();
+}
+function clearSelection(){
+  selectedIds.clear();
+  const boxes=document.querySelectorAll('.row-chk');
+  boxes.forEach(b=>{b.checked=false;const row=b.closest('tr');if(row)row.style.background='';});
+  const chkAll=document.getElementById('chkAll');if(chkAll)chkAll.checked=false;
+  updateBulkCount();
+}
+function updateBulkCount(){
+  const el=document.getElementById('bulkCount');
+  if(el)el.textContent=`${selectedIds.size} selected`;
+}
+async function bulkDelete(){
+  if(!selectedIds.size){toast('No clients selected','er');return;}
+  const names=[];
+  selectedIds.forEach(id=>{const f=filings.find(x=>x.id===id);if(f)names.push(f.name);});
+  const preview=names.slice(0,5).join(', ')+(names.length>5?` …+${names.length-5} more`:'');
+  if(!confirm(`Permanently delete ${selectedIds.size} client(s)?\n\n${preview}\n\nThis cannot be undone.`))return;
+  const ids=[...selectedIds];
+  let ok=0,fail=0;
+  for(const id of ids){
+    try{await window._fns.deleteDoc(window._fns.doc(window._db,'ift_filings',id));ok++;}
+    catch(e){fail++;}
+  }
+  selectedIds.clear();
+  toast(`${ok} client(s) deleted${fail?', '+fail+' failed':''}`);
+  toggleBulkMode();
+}
+
+// ═══════════════════════
 //  SORT / FILTER
 // ═══════════════════════
 function sortBy(f,th){
@@ -1300,7 +1652,7 @@ function sortCompBy(f,th){
   th.classList.add(sortCompDir===1?'sa':'sd');renderCompleted();
 }
 function resetFilters(){
-  ['allSrch','fHead','fStaff','fGroup','fStatus','fBS','fEV','fDueMonth'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['allSrch','fHead','fStaff','fGroup','fStatus','fBS','fEV'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   renderAll();
 }
 function switchView(v,btn){
@@ -1318,8 +1670,8 @@ function switchView(v,btn){
 //  EXPORT
 // ═══════════════════════
 function doExport(){
-  const h=['Assessee Name','Head','Staff','Group','Due Date','Status','Data Received Date','Date of Filing','Balance Sheet','E-Verification','Billed','Invoice Number','Notes'];
-  const rows=filings.map(f=>[f.name,f.head,f.staffName,f.group,f.dueDate,f.status,f.dataReceivedDate,f.dateOfFiling,f.balanceSheet,f.eVerification,f.billed,f.invoiceNumber,f.notes].map(v=>`"${(v||'').replace(/"/g,'""')}"`));
+  const h=['Assessee Name','Head','Sub Head','Group','Status','Data Received Date','Date of Filing','Balance Sheet','E-Verification','Billed','Invoice Number','Notes'];
+  const rows=filings.map(f=>[f.name,f.head,f.staffName,f.group,f.status,f.dataReceivedDate,f.dateOfFiling,f.balanceSheet,f.eVerification,f.billed,f.invoiceNumber,f.notes].map(v=>`"${(v||'').replace(/"/g,'""')}"`));
   const csv=[h,...rows].map(r=>r.join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download=`IndividualFiling_GandhiArunCo_${new Date().toISOString().split('T')[0]}.csv`;a.click();toast('Exported ✓');
@@ -1330,6 +1682,13 @@ function doExport(){
 // ═══════════════════════
 let parsedImportRows=[];
 
+function downloadSampleCsv(){
+  const sample='name,head,group,status,notes\nRamesh Kumar Sharma,CA Arun Gandhi,Sharma Family,Not Received,\nPriya Shah,CA Arun Gandhi,Shah Group,Not Received,Pending documents\nShivay Financials,Devyani,,Not Received,';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([sample],{type:'text/csv'}));
+  a.download='IndividualFiling_SampleImport.csv';a.click();
+  toast('Sample CSV downloaded ✓');
+}
 function handleCsvFile(e){
   const file=e.target.files[0];if(!file)return;
   readCsvFile(file);
@@ -1347,19 +1706,44 @@ function readCsvFile(file){
     if(lines.length<2){showMsg(document.getElementById('importMsg'),'CSV appears empty or has no data rows.','er');return;}
     const headers=parseCSVLine(lines[0]).map(h=>h.toLowerCase().trim());
     const nameIdx=headers.indexOf('name');
-    if(nameIdx===-1){showMsg(document.getElementById('importMsg'),'CSV must have a "name" column.','er');return;}
+    if(nameIdx===-1){showMsg(document.getElementById('importMsg'),'CSV must have a "name" column in the header row.','er');return;}
+
     parsedImportRows=lines.slice(1).map(line=>{
       const cols=parseCSVLine(line);
       const row={};
       headers.forEach((h,i)=>row[h]=cols[i]||'');
       return row;
     }).filter(r=>r.name);
+
     const existing=new Set(filings.map(f=>(f.name||'').toLowerCase().trim()).filter(Boolean));
     const newRows=parsedImportRows.filter(r=>!existing.has((r.name||'').toLowerCase().trim()));
     const skipped=parsedImportRows.length-newRows.length;
-    document.getElementById('importStats').innerHTML=
-      `<strong>${parsedImportRows.length}</strong> rows found · <strong style="color:var(--green);">${newRows.length}</strong> new · <strong style="color:var(--orange);">${skipped}</strong> skipped (duplicate name)`;
     pendingImportRows=newRows;
+
+    document.getElementById('importStats').innerHTML=
+      `<strong>${parsedImportRows.length}</strong> rows found · <strong style="color:var(--green);">${newRows.length}</strong> will be imported · <strong style="color:var(--orange);">${skipped}</strong> skipped (duplicate name) — <em>Review the preview below before confirming</em>`;
+
+    // Build preview table — show up to 50 rows
+    const KNOWN=['name','head','group','status','notes'];
+    const previewCols=headers.filter(h=>KNOWN.includes(h));
+    const thead=document.getElementById('importPreviewHead');
+    const tbody=document.getElementById('importPreviewBody');
+    if(thead&&tbody){
+      thead.innerHTML='<tr>'+previewCols.map(h=>`<th style="padding:6px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;">${h}</th>`).join('')+'<th style="padding:6px 10px;font-size:10px;">Status</th></tr>';
+      const preview=parsedImportRows.slice(0,50);
+      tbody.innerHTML=preview.map(row=>{
+        const isDup=existing.has((row.name||'').toLowerCase().trim());
+        const cells=previewCols.map(h=>`<td style="padding:5px 10px;border-bottom:1px solid var(--border);${h==='name'?'font-weight:600;':''}">${esc(row[h]||'—')}</td>`).join('');
+        return `<tr style="${isDup?'opacity:.45;background:#fff8f8;':''}">
+          ${cells}
+          <td style="padding:5px 10px;border-bottom:1px solid var(--border);">${isDup?'<span style="color:var(--orange);font-size:10px;font-weight:600;">⚠ Duplicate</span>':'<span style="color:var(--green);font-size:10px;font-weight:600;">✓ New</span>'}</td>
+        </tr>`;
+      }).join('');
+      if(parsedImportRows.length>50){
+        tbody.innerHTML+=`<tr><td colspan="${previewCols.length+1}" style="padding:8px 10px;text-align:center;color:var(--ink3);font-size:11px;">… and ${parsedImportRows.length-50} more rows</td></tr>`;
+      }
+    }
+
     document.getElementById('importPreview').style.display='block';
     document.getElementById('importMsg').style.display='none';
   };
@@ -1382,23 +1766,21 @@ async function doImport(){
   let ok=0;let fail=0;
   for(const row of pendingImportRows){
     try{
-      const staffMatch=staffList.find(s=>(s.name||'').toLowerCase()===(row.staffname||row.staff||'').toLowerCase());
       await window._fns.addDoc(window._fns.collection(window._db,'ift_filings'),{
         name:row.name||'',
         pan:'',
         head:row.head||'',
-        staffUid:staffMatch?.uid||'',
-        staffName:staffMatch?.name||row.staffname||row.staff||'',
+        staffUid:'',
+        staffName:row.head||'',
         isSelfHandled:false,
         group:row.group||'',
-        dueDate:row.duedate||row['due date']||'',
         status:row.status||'Not Received',
-        dataReceivedDate:row.datareceiveddate||row['data received date']||'',
-        dateOfFiling:row.dateoffiling||row['date of filing']||'',
-        balanceSheet:row.balancesheet||row['balance sheet']||'NA',
-        eVerification:row.everification||'Pending',
-        billed:row.billed||'No',
-        invoiceNumber:row.invoicenumber||'',
+        dataReceivedDate:'',
+        dateOfFiling:'',
+        balanceSheet:'NA',
+        eVerification:'Pending',
+        billed:'No',
+        invoiceNumber:'',
         notes:row.notes||'',
         createdAt:new Date().toISOString(),
         updatedAt:new Date().toISOString()
@@ -1410,6 +1792,8 @@ async function doImport(){
   showMsg(document.getElementById('importMsg'),`Import complete: ${ok} added${fail?', '+fail+' failed':''}. ✓`,'ok');
   document.getElementById('importPreview').style.display='none';
   document.getElementById('csvFileInput').value='';
+  const tb=document.getElementById('importPreviewBody');if(tb)tb.innerHTML='';
+  const th=document.getElementById('importPreviewHead');if(th)th.innerHTML='';
   pendingImportRows=[];
   toast(`${ok} filings imported ✓`);
 }
@@ -1418,6 +1802,8 @@ function cancelImport(){
   document.getElementById('importPreview').style.display='none';
   document.getElementById('csvFileInput').value='';
   document.getElementById('importMsg').style.display='none';
+  const tb=document.getElementById('importPreviewBody');if(tb)tb.innerHTML='';
+  const th=document.getElementById('importPreviewHead');if(th)th.innerHTML='';
 }
 
 // ═══════════════════════
